@@ -83,7 +83,9 @@ export async function GET(request: Request) {
             }, { status: 500 });
         }
 
-        return NextResponse.redirect(new URL('/dashboard', request.url));
+        // Usar a URL pública configurada para evitar redirect para 0.0.0.0 em produção
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+        return NextResponse.redirect(new URL('/dashboard', appUrl));
     } catch (error) {
         console.error('OAuth Error:', error);
         return NextResponse.json({ error: 'OAuth failed' }, { status: 500 });
