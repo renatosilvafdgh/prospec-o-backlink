@@ -83,8 +83,8 @@ export async function GET(request: Request) {
             }, { status: 500 });
         }
 
-        // Usar a URL pública configurada para evitar redirect para 0.0.0.0 em produção
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+        // Usar APP_URL (runtime) para garantir URL correta em produção
+        const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
         return NextResponse.redirect(new URL('/dashboard', appUrl));
     } catch (error) {
         console.error('OAuth Error:', error);
