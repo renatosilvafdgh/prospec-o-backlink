@@ -84,7 +84,7 @@ export default function DashboardPage() {
                     <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
                     <p className="text-muted-foreground mt-1">Bem-vindo de volta! Aqui está um resumo da sua prospecção.</p>
                 </div>
-                {loading && <Loader2 className="w-5 h-5 text-primary animate-spin mb-2" />}
+                {loading && <Loader2 className="w-5 h-5 text-indigo-600 animate-spin mb-2" />}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -104,7 +104,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="p-6 rounded-2xl glass border border-border h-80 flex flex-col items-center justify-center text-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                        <TrendingUp className="w-6 h-6 text-primary" />
+                        <TrendingUp className="w-6 h-6 text-indigo-600" />
                     </div>
                     <div>
                         <p className="font-semibold">Gráfico de Atividade</p>
@@ -124,3 +124,4 @@ export default function DashboardPage() {
         </div>
     );
 }
+

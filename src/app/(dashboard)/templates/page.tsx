@@ -105,7 +105,7 @@ export default function TemplatesPage() {
                 </div>
                 <button
                     onClick={() => setIsModalOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white hover:opacity-90 transition-all font-medium shadow-lg shadow-primary/20"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 text-white hover:opacity-90 transition-all font-medium shadow-lg shadow-indigo-600/20"
                 >
                     <Plus className="w-4 h-4" />
                     Novo Template
@@ -114,7 +114,7 @@ export default function TemplatesPage() {
 
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-3">
-                    <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                    <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
                     <p className="text-muted-foreground animate-pulse">Carregando seus templates...</p>
                 </div>
             ) : templates.length === 0 ? (
@@ -126,7 +126,7 @@ export default function TemplatesPage() {
                         <h3 className="text-lg font-semibold">Nenhum template encontrado</h3>
                         <p className="text-muted-foreground">Crie seu primeiro modelo de e-mail para começar a prospecção.</p>
                     </div>
-                    <button onClick={() => setIsModalOpen(true)} className="text-primary font-bold hover:underline">
+                    <button onClick={() => setIsModalOpen(true)} className="text-indigo-600 font-bold hover:underline">
                         Criar novo template
                     </button>
                 </div>
@@ -135,7 +135,7 @@ export default function TemplatesPage() {
                     {templates.map((template) => (
                         <div key={template.id} className="p-6 rounded-2xl glass border border-border flex flex-col gap-4 group hover:border-primary/50 transition-all relative">
                             <div className="flex justify-between items-start">
-                                <div className="p-3 rounded-xl bg-primary/10 text-primary">
+                                <div className="p-3 rounded-xl bg-primary/10 text-indigo-600">
                                     <Mail className="w-5 h-5" />
                                 </div>
                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -162,7 +162,7 @@ export default function TemplatesPage() {
                             </div>
 
                             <div className="flex items-center gap-2 mt-auto pt-4 border-t border-border">
-                                <button className="flex items-center gap-2 text-xs font-semibold text-primary hover:underline">
+                                <button className="flex items-center gap-2 text-xs font-semibold text-indigo-600 hover:underline">
                                     <Copy className="w-3.5 h-3.5" />
                                     Duplicar
                                 </button>
@@ -191,7 +191,7 @@ export default function TemplatesPage() {
                     <div className="w-full max-w-2xl bg-card border border-border rounded-2xl shadow-2xl p-6 space-y-6 animate-in zoom-in-95 duration-200">
                         <div className="flex justify-between items-center">
                             <h3 className="text-xl font-bold flex items-center gap-2">
-                                <Mail className="w-5 h-5 text-primary" />
+                                <Mail className="w-5 h-5 text-indigo-600" />
                                 Criar Novo Template
                             </h3>
                             <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-muted rounded-full transition-colors">
@@ -210,7 +210,7 @@ export default function TemplatesPage() {
                                         required
                                         type="text"
                                         placeholder="Ex: Proposta Inicial"
-                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
                                         value={newTemplate.nome_template}
                                         onChange={e => setNewTemplate({ ...newTemplate, nome_template: e.target.value })}
                                     />
@@ -224,7 +224,7 @@ export default function TemplatesPage() {
                                         required
                                         type="text"
                                         placeholder="Ex: Parceria com o site {site}"
-                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
                                         value={newTemplate.assunto}
                                         onChange={e => setNewTemplate({ ...newTemplate, assunto: e.target.value })}
                                     />
@@ -240,7 +240,7 @@ export default function TemplatesPage() {
                                     required
                                     rows={8}
                                     placeholder="Escreva sua mensagem aqui... Use {site}, {url} ou {nome} para campos dinâmicos."
-                                    className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none"
+                                    className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all resize-none"
                                     value={newTemplate.corpo_email}
                                     onChange={e => setNewTemplate({ ...newTemplate, corpo_email: e.target.value })}
                                 />
@@ -257,7 +257,7 @@ export default function TemplatesPage() {
                                 <button
                                     type="submit"
                                     disabled={isSaving}
-                                    className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-white font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                                    className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2"
                                 >
                                     {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar Template'}
                                 </button>
@@ -269,3 +269,4 @@ export default function TemplatesPage() {
         </div>
     );
 }
+

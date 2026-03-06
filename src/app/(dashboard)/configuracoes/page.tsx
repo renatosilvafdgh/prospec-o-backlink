@@ -21,7 +21,7 @@ export default function ConfigPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="col-span-1 space-y-4">
-                    <div className="p-4 rounded-xl bg-primary text-white flex items-center gap-3">
+                    <div className="p-4 rounded-xl bg-indigo-600 text-white flex items-center gap-3">
                         <User className="w-5 h-5" />
                         <span className="font-medium">Perfil e Conta</span>
                     </div>
@@ -49,7 +49,7 @@ export default function ConfigPage() {
                                     <input type="email" className="w-full px-4 py-2 bg-muted/50 border border-border rounded-lg outline-none" placeholder="seu@email.com" readOnly />
                                 </div>
                             </div>
-                            <button className="px-6 py-2 bg-primary text-white rounded-xl font-medium hover:opacity-90 transition-all">
+                            <button className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-medium hover:opacity-90 transition-all">
                                 Salvar Alterações
                             </button>
                         </div>
@@ -69,3 +69,4 @@ export default function ConfigPage() {
         </div>
     );
 }
+

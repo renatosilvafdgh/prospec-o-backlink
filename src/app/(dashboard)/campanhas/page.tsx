@@ -18,6 +18,7 @@ export default function CampanhasPage() {
         nome_campanha: '',
         emails_por_dia: 50,
         intervalo_followup_dias: 3,
+        intervalo_envio_segundos: 0,
         template_inicial: '',
         template_followup: '',
         ativa: true
@@ -82,6 +83,7 @@ export default function CampanhasPage() {
                 nome_campanha: '',
                 emails_por_dia: 50,
                 intervalo_followup_dias: 3,
+                intervalo_envio_segundos: 0,
                 template_inicial: '',
                 template_followup: '',
                 ativa: true
@@ -193,7 +195,7 @@ export default function CampanhasPage() {
                     </button>
                     <button
                         onClick={() => setIsModalOpen(true)}
-                        className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-primary text-white hover:opacity-90 transition-all font-bold shadow-lg shadow-primary/25"
+                        className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-indigo-600 text-white hover:opacity-90 transition-all font-bold shadow-lg shadow-indigo-600/25"
                     >
                         <Plus className="w-5 h-5" />
                         Criar Campanha
@@ -203,7 +205,7 @@ export default function CampanhasPage() {
 
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-3">
-                    <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                    <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
                     <p className="text-muted-foreground animate-pulse">Carregando suas campanhas...</p>
                 </div>
             ) : campanhas.length === 0 ? (
@@ -215,7 +217,7 @@ export default function CampanhasPage() {
                         <h3 className="text-lg font-semibold">Nenhuma campanha encontrada</h3>
                         <p className="text-muted-foreground">Crie sua primeira campanha para iniciar o envio automático de e-mails.</p>
                     </div>
-                    <button onClick={() => setIsModalOpen(true)} className="text-primary font-bold hover:underline">
+                    <button onClick={() => setIsModalOpen(true)} className="text-indigo-600 font-bold hover:underline">
                         Criar nova campanha
                     </button>
                 </div>
@@ -274,11 +276,20 @@ export default function CampanhasPage() {
                                     <Calendar className="w-3.5 h-3.5 text-indigo-500" />
                                     <span>Follow-up {campanha.intervalo_followup_dias} dias</span>
                                 </div>
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent/50 text-xs border border-border">
+                                    <Clock className="w-3.5 h-3.5 text-sky-500" />
+                                    <span>Intervalo: {campanha.intervalo_envio_segundos > 0 ? (() => {
+                                        const s = campanha.intervalo_envio_segundos;
+                                        if (s >= 3600) return `${s / 3600}h`;
+                                        if (s >= 60) return `${s / 60} min`;
+                                        return `${s}s`;
+                                    })() : 'sem delay'}</span>
+                                </div>
                             </div>
 
                             <Link
                                 href={`/campanhas/${campanha.id}`}
-                                className="w-full py-4 mt-2 rounded-2xl bg-primary/5 hover:bg-primary/10 text-primary font-bold transition-all border border-primary/20 flex items-center justify-center gap-2"
+                                className="w-full py-4 mt-2 rounded-2xl bg-primary/5 hover:bg-primary/10 text-indigo-600 font-bold transition-all border border-primary/20 flex items-center justify-center gap-2"
                             >
                                 <BarChart3 className="w-4 h-4" />
                                 Relatório da Campanha
@@ -294,7 +305,7 @@ export default function CampanhasPage() {
                     <div className="w-full max-w-xl bg-card border border-border rounded-2xl shadow-2xl p-6 space-y-6 animate-in zoom-in-95 duration-200">
                         <div className="flex justify-between items-center">
                             <h3 className="text-xl font-bold flex items-center gap-2">
-                                <Settings2 className="w-5 h-5 text-primary" />
+                                <Settings2 className="w-5 h-5 text-indigo-600" />
                                 Criar Nova Campanha
                             </h3>
                             <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-muted rounded-full transition-colors">
@@ -309,7 +320,7 @@ export default function CampanhasPage() {
                                     required
                                     type="text"
                                     placeholder="Ex: Prospecção Tech BR"
-                                    className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                    className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
                                     value={newCampanha.nome_campanha}
                                     onChange={e => setNewCampanha({ ...newCampanha, nome_campanha: e.target.value })}
                                 />
@@ -320,7 +331,7 @@ export default function CampanhasPage() {
                                     <label className="text-sm font-medium">Template Inicial</label>
                                     <select
                                         required
-                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
                                         value={newCampanha.template_inicial}
                                         onChange={e => setNewCampanha({ ...newCampanha, template_inicial: e.target.value })}
                                     >
@@ -332,7 +343,7 @@ export default function CampanhasPage() {
                                     <label className="text-sm font-medium">Template Follow-up</label>
                                     <select
                                         required
-                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
                                         value={newCampanha.template_followup}
                                         onChange={e => setNewCampanha({ ...newCampanha, template_followup: e.target.value })}
                                     >
@@ -347,7 +358,7 @@ export default function CampanhasPage() {
                                     <label className="text-sm font-medium">Envios por dia</label>
                                     <input
                                         type="number"
-                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
                                         value={newCampanha.emails_por_dia}
                                         onChange={e => setNewCampanha({ ...newCampanha, emails_por_dia: parseInt(e.target.value) })}
                                     />
@@ -356,11 +367,32 @@ export default function CampanhasPage() {
                                     <label className="text-sm font-medium">Dias para Follow-up</label>
                                     <input
                                         type="number"
-                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
                                         value={newCampanha.intervalo_followup_dias}
                                         onChange={e => setNewCampanha({ ...newCampanha, intervalo_followup_dias: parseInt(e.target.value) })}
                                     />
                                 </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium flex items-center gap-2">
+                                    <Clock className="w-4 h-4 text-sky-500" />
+                                    Intervalo entre e-mails
+                                </label>
+                                <select
+                                    className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
+                                    value={newCampanha.intervalo_envio_segundos}
+                                    onChange={e => setNewCampanha({ ...newCampanha, intervalo_envio_segundos: parseInt(e.target.value) })}
+                                >
+                                    <option value={0}>Sem delay (mais rápido)</option>
+                                    <option value={10}>10 segundos</option>
+                                    <option value={30}>30 segundos</option>
+                                    <option value={60}>1 minuto</option>
+                                    <option value={120}>2 minutos</option>
+                                    <option value={300}>5 minutos</option>
+                                    <option value={600}>10 minutos</option>
+                                </select>
+                                <p className="text-xs text-muted-foreground">Tempo de espera entre o disparo de cada e-mail.</p>
                             </div>
 
                             <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/20 flex gap-3 items-start">
@@ -370,7 +402,7 @@ export default function CampanhasPage() {
 
                             <div className="flex gap-3 pt-4">
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-border font-medium hover:bg-muted transition-all">Cancelar</button>
-                                <button type="submit" disabled={isSaving} className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-white font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2">
+                                <button type="submit" disabled={isSaving} className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2">
                                     {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Criar Campanha'}
                                 </button>
                             </div>
@@ -381,3 +413,4 @@ export default function CampanhasPage() {
         </div>
     );
 }
+

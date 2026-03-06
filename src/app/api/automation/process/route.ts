@@ -3,6 +3,8 @@ import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { sendEmail } from '@/utils/google/gmail';
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const secret = searchParams.get('secret');
@@ -40,25 +42,42 @@ export async function GET(request: Request) {
 
         for (const campanha of (campanhas || [])) {
             // 3. Obter tokens do usuário dono da campanha
-            const { data: tokens } = await supabase
+            // Usamos a mesma instância 'supabase' que já é o admin client instanciado na linha 11
+            const { data: tokens, error: tokenError } = await supabase
                 .from('users_tokens')
                 .select('*')
                 .eq('user_id', campanha.user_id)
                 .single();
 
-            if (!tokens) continue;
+            if (tokenError) {
+                console.error(`Erro ao buscar tokens do user_id ${campanha.user_id}:`, tokenError.message);
+            }
+
+            if (!tokens) {
+                await supabase.from('email_logs').insert({ user_id: campanha.user_id, campanha_id: campanha.id, status_envio: 'debug_sem_token', tipo: 'primeiro_contato' });
+                continue;
+            }
 
             // 4. Calcular limite de hoje para esta campanha
             const { data: logsHoje } = await supabase
                 .from('email_logs')
                 .select('id')
                 .eq('campanha_id', campanha.id)
+                .neq('status_envio', 'debug_sem_token')
+                .neq('status_envio', 'debug_limite_zero')
+                .neq('status_envio', 'debug_sem_template')
                 .gte('data_envio', new Date(new Date().setHours(0, 0, 0, 0)).toISOString());
+
 
             const jaEnviadosHoje = logsHoje?.length || 0;
             const limiteRestante = Math.max(0, campanha.emails_por_dia - jaEnviadosHoje);
 
-            if (limiteRestante <= 0) continue;
+            console.log(`-> Limite da campanha: ${campanha.emails_por_dia}. Enviados hoje: ${jaEnviadosHoje}. Restante: ${limiteRestante}`);
+
+            if (limiteRestante <= 0) {
+                await supabase.from('email_logs').insert({ user_id: campanha.user_id, campanha_id: campanha.id, status_envio: 'debug_limite_zero', tipo: 'primeiro_contato' });
+                continue;
+            }
 
             // 5. Buscar sites para CONTATO INICIAL (status='lead')
             const { data: sitesLead } = await supabase
@@ -82,6 +101,8 @@ export async function GET(request: Request) {
                 ...(sitesFollowup || []).map(s => ({ ...s, isFollowup: true }))
             ];
 
+            console.log(`-> Sites prontos para processamento (Leads: ${sitesLead?.length || 0}, Followup: ${sitesFollowup?.length || 0})`);
+
             // 7. Processar Sites
             for (const site of allSites) {
                 try {
@@ -94,7 +115,15 @@ export async function GET(request: Request) {
 
                     const template = site.isFollowup ? campanha.template_followup : campanha.template_inicial;
 
-                    if (!template) continue;
+                    if (!template) {
+                        await supabase.from('email_logs').insert({ user_id: campanha.user_id, campanha_id: campanha.id, site_id: site.id, status_envio: 'debug_sem_template', tipo: 'primeiro_contato' });
+                        continue;
+                    }
+
+                    if (!site.email) {
+                        await supabase.from('email_logs').insert({ user_id: campanha.user_id, campanha_id: campanha.id, site_id: site.id, status_envio: 'debug_sem_email', tipo: 'primeiro_contato' });
+                        continue;
+                    }
 
                     let subject = template.assunto;
                     let body = template.corpo_email;
@@ -132,8 +161,15 @@ export async function GET(request: Request) {
                     }).eq('id', site.id);
 
                     totalProcessed++;
-                } catch (err) {
+
+                    // Aguardar o intervalo configurado antes do próximo envio
+                    if (campanha.intervalo_envio_segundos > 0) {
+                        console.log(`[Automação] Aguardando ${campanha.intervalo_envio_segundos}s antes do próximo envio...`);
+                        await sleep(campanha.intervalo_envio_segundos * 1000);
+                    }
+                } catch (err: any) {
                     console.error(`Erro ao processar site ${site.url}:`, err);
+                    await supabase.from('email_logs').insert({ user_id: campanha.user_id, campanha_id: campanha.id, site_id: site.id, status_envio: 'debug_sendemail_throw: ' + err.message, tipo: 'primeiro_contato' });
                 }
             }
         }

@@ -1,58 +1,262 @@
 @import "tailwindcss";
 
+/* ============================================
+   PROSPECTOR AI — DESIGN SYSTEM (LIGHT MODE)
+   Based on Stripe/Linear aesthetic
+   Primary: Indigo-600 (#4f46e5)
+   WCAG AA compliant
+   ============================================ */
+
 :root {
-  /* Cores Modernas & Premium */
-  --background: #0a0a0c;
-  --foreground: #f8fafc;
-  --card: #16161a;
-  --card-foreground: #f8fafc;
-  --popover: #16161a;
-  --popover-foreground: #f8fafc;
-  --primary: #6366f1; /* Indigo */
+  /* Surfaces */
+  --background: #f8fafc;
+  /* Page background — light gray */
+  --card: #ffffff;
+  /* Cards, modals, table containers */
+  --popover: #ffffff;
+  --sidebar: #ffffff;
+  /* Sidebar bg */
+
+  /* Typography */
+  --foreground: #0f172a;
+  /* Primary text — slate-900, high contrast */
+  --card-foreground: #0f172a;
+  --popover-foreground: #0f172a;
+  --muted-foreground: #64748b;
+  /* Secondary text — slate-500 */
+
+  /* Brand */
+  --primary: #4f46e5;
+  /* Indigo-600 */
   --primary-foreground: #ffffff;
-  --secondary: #1e1e24;
-  --secondary-foreground: #f8fafc;
-  --muted: #1e1e24;
-  --muted-foreground: #94a3b8;
-  --accent: #2d2d35;
-  --accent-foreground: #f8fafc;
-  --destructive: #ef4444;
+  --primary-hover: #4338ca;
+  /* Indigo-700 */
+  --primary-subtle: #eef2ff;
+  /* Indigo-50 — hover bg on sidebar */
+  --primary-subtle-text: #4338ca;
+  /* Indigo-700 — text on indigo-50 */
+
+  /* Neutrals */
+  --secondary: #f1f5f9;
+  --secondary-foreground: #475569;
+  --muted: #f1f5f9;
+  --accent: #f8fafc;
+  --accent-foreground: #0f172a;
+
+  /* Feedback */
+  --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --border: #23232a;
-  --input: #23232a;
-  --ring: #6366f1;
+  --success: #16a34a;
+  --warning: #d97706;
+
+  /* Borders */
+  --border: #e2e8f0;
+  /* slate-200 — consistent borders */
+  --input: #e2e8f0;
+  --ring: #4f46e5;
   --radius: 0.75rem;
 }
 
+/* ============ BASE ============ */
 @layer base {
   * {
     border-color: var(--border);
+    box-sizing: border-box;
   }
+
   body {
     background-color: var(--background);
     color: var(--foreground);
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #0f172a;
+  }
+
+  /* Fix select options — WCAG contrast on white bg */
+  select option {
+    background-color: #ffffff;
+    color: #0f172a;
   }
 }
 
+/* ============ COMPONENTS ============ */
+
+/* Card surface — white with border and subtle shadow */
+.card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+/* Glass — light mode version */
 .glass {
-  background: rgba(22, 22, 26, 0.7);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid #e2e8f0;
 }
 
+/* Gradient text */
 .gradient-text {
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
+/* Button — Primary */
+.btn-primary {
+  background-color: var(--primary);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s, box-shadow 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+/* Button — Secondary/Ghost */
+.btn-ghost {
+  background-color: transparent;
+  color: #374151;
+  font-weight: 500;
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.btn-ghost:hover {
+  background-color: #f8fafc;
+}
+
+/* Input base */
+.input {
+  width: 100%;
+  padding: 10px 14px;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  color: #0f172a;
+  font-size: 14px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+
+.input:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+.input::placeholder {
+  color: #94a3b8;
+}
+
+/* Status badges */
+.badge-lead {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.badge-contatado {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.badge-respondeu {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+
+.badge-fechado {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.badge-recusado {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+/* Smooth card hover */
 .card-hover {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
+}
+
+/* Sidebar nav active state */
+.nav-active {
+  background-color: #eef2ff;
+  color: #4338ca;
+  border-left: 3px solid #4f46e5;
+}
+
+/* Sidebar nav default */
+.nav-item {
+  color: #64748b;
+  border-left: 3px solid transparent;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.nav-item:hover {
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+
+/* Animate in utilities */
+.animate-in {
+  animation: animateIn 0.3s ease forwards;
+}
+
+@keyframes animateIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

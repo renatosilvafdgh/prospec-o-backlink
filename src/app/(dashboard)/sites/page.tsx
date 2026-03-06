@@ -219,7 +219,7 @@ export default function SitesPage() {
                     </button>
                     <button
                         onClick={() => setIsModalOpen(true)}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white hover:opacity-90 transition-all font-medium shadow-lg shadow-primary/20"
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 text-white hover:opacity-90 transition-all font-medium shadow-lg shadow-indigo-600/20"
                     >
                         <Plus className="w-4 h-4" />
                         Adicionar Site
@@ -233,7 +233,7 @@ export default function SitesPage() {
                     <input
                         type="text"
                         placeholder="Buscar por domínio ou e-mail..."
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-card border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-card border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -241,12 +241,12 @@ export default function SitesPage() {
 
                 {selectedSites.length > 0 && (
                     <div className="flex items-center gap-3 animate-in fade-in zoom-in duration-200">
-                        <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20">
+                        <span className="text-sm font-medium text-indigo-600 bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20">
                             {selectedSites.length} selecionados
                         </span>
                         <button
                             onClick={() => setIsBulkModalOpen(true)}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white hover:opacity-90 transition-all text-sm font-bold shadow-lg shadow-primary/20"
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 text-white hover:opacity-90 transition-all text-sm font-bold shadow-lg shadow-indigo-600/20"
                         >
                             <Zap className="w-4 h-4" />
                             Atribuir Campanha
@@ -264,7 +264,7 @@ export default function SitesPage() {
                 <div className="overflow-x-auto">
                     {loading ? (
                         <div className="flex flex-col items-center justify-center py-20 gap-3">
-                            <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                            <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
                             <p className="text-muted-foreground animate-pulse">Carregando seus sites...</p>
                         </div>
                     ) : filteredSites.length === 0 ? (
@@ -276,7 +276,7 @@ export default function SitesPage() {
                                 <h3 className="text-lg font-semibold">Nenhum site encontrado</h3>
                                 <p className="text-muted-foreground">Você ainda não cadastrou nenhum site ou nenhum corresponde à sua busca.</p>
                             </div>
-                            <button onClick={() => setIsModalOpen(true)} className="text-primary font-bold hover:underline">
+                            <button onClick={() => setIsModalOpen(true)} className="text-indigo-600 font-bold hover:underline">
                                 Comece adicionando seu primeiro site
                             </button>
                         </div>
@@ -290,7 +290,7 @@ export default function SitesPage() {
                                             className="p-1 rounded text-muted-foreground hover:bg-accent"
                                         >
                                             {selectedSites.length === filteredSites.length && filteredSites.length > 0
-                                                ? <CheckSquare className="w-4 h-4 text-primary" />
+                                                ? <CheckSquare className="w-4 h-4 text-indigo-600" />
                                                 : <Square className="w-4 h-4" />
                                             }
                                         </button>
@@ -314,7 +314,7 @@ export default function SitesPage() {
                                                 className="p-1 rounded text-muted-foreground hover:bg-accent"
                                             >
                                                 {selectedSites.includes(site.id)
-                                                    ? <CheckSquare className="w-4 h-4 text-primary" />
+                                                    ? <CheckSquare className="w-4 h-4 text-indigo-600" />
                                                     : <Square className="w-4 h-4" />
                                                 }
                                             </button>
@@ -327,14 +327,14 @@ export default function SitesPage() {
                                             <div className="flex items-center gap-2 mt-0.5">
                                                 <span className="text-xs text-muted-foreground">{site.email || 'E-mail não cadastrado'}</span>
                                                 {site.campanha && (
-                                                    <span className="text-[10px] bg-primary/5 text-primary px-1.5 py-0.5 rounded border border-primary/10">
+                                                    <span className="text-[10px] bg-primary/5 text-indigo-600 px-1.5 py-0.5 rounded border border-primary/10">
                                                         {site.campanha.nome_campanha}
                                                     </span>
                                                 )}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 text-primary text-xs font-bold">
+                                            <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 text-indigo-600 text-xs font-bold">
                                                 {site.domain_authority || 0}
                                             </span>
                                         </td>
@@ -380,7 +380,7 @@ export default function SitesPage() {
                     <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl p-6 space-y-6 animate-in zoom-in-95 duration-200">
                         <div className="flex justify-between items-center">
                             <h3 className="text-xl font-bold flex items-center gap-2">
-                                <Globe className="w-5 h-5 text-primary" />
+                                <Globe className="w-5 h-5 text-indigo-600" />
                                 Adicionar Novo Site
                             </h3>
                             <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-muted rounded-full transition-colors">
@@ -395,7 +395,7 @@ export default function SitesPage() {
                                     required
                                     type="text"
                                     placeholder="exemplo.com.br"
-                                    className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                    className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
                                     value={newSite.url}
                                     onChange={e => setNewSite({ ...newSite, url: e.target.value })}
                                 />
@@ -405,7 +405,7 @@ export default function SitesPage() {
                                 <input
                                     type="email"
                                     placeholder="contato@exemplo.com"
-                                    className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                    className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
                                     value={newSite.email}
                                     onChange={e => setNewSite({ ...newSite, email: e.target.value })}
                                 />
@@ -417,7 +417,7 @@ export default function SitesPage() {
                                     <input
                                         type="text"
                                         placeholder="Tecnologia"
-                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
                                         value={newSite.categoria}
                                         onChange={e => setNewSite({ ...newSite, categoria: e.target.value })}
                                     />
@@ -425,12 +425,12 @@ export default function SitesPage() {
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Campanha</label>
                                     <select
-                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
+                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all text-foreground"
                                         value={newSite.campanha_id}
                                         onChange={e => setNewSite({ ...newSite, campanha_id: e.target.value })}
                                     >
-                                        <option value="" className="bg-slate-900 text-white">Nenhuma</option>
-                                        {campanhas.map(c => <option key={c.id} value={c.id} className="bg-slate-900 text-white">{c.nome_campanha}</option>)}
+                                        <option value="">Nenhuma</option>
+                                        {campanhas.map(c => <option key={c.id} value={c.id}>{c.nome_campanha}</option>)}
                                     </select>
                                 </div>
                             </div>
@@ -446,7 +446,7 @@ export default function SitesPage() {
                                 <button
                                     type="submit"
                                     disabled={isSaving}
-                                    className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-white font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                                    className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2"
                                 >
                                     {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar Site'}
                                 </button>
@@ -461,7 +461,7 @@ export default function SitesPage() {
                     <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl p-6 space-y-6 animate-in zoom-in-95 duration-200">
                         <div className="flex justify-between items-center">
                             <h3 className="text-xl font-bold flex items-center gap-2">
-                                <Edit2 className="w-5 h-5 text-primary" />
+                                <Edit2 className="w-5 h-5 text-indigo-600" />
                                 Editar Site
                             </h3>
                             <button onClick={() => setEditingSite(null)} className="p-2 hover:bg-muted rounded-full transition-colors">
@@ -475,7 +475,7 @@ export default function SitesPage() {
                                 <input
                                     required
                                     type="text"
-                                    className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                    className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
                                     value={editingSite.url}
                                     onChange={e => setEditingSite({ ...editingSite, url: e.target.value })}
                                 />
@@ -484,7 +484,7 @@ export default function SitesPage() {
                                 <label className="text-sm font-medium">E-mail de Contato</label>
                                 <input
                                     type="email"
-                                    className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                    className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
                                     value={editingSite.email || ''}
                                     onChange={e => setEditingSite({ ...editingSite, email: e.target.value })}
                                 />
@@ -495,7 +495,7 @@ export default function SitesPage() {
                                     <label className="text-sm font-medium">Categoria</label>
                                     <input
                                         type="text"
-                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
                                         value={editingSite.categoria || ''}
                                         onChange={e => setEditingSite({ ...editingSite, categoria: e.target.value })}
                                     />
@@ -503,26 +503,26 @@ export default function SitesPage() {
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Campanha</label>
                                     <select
-                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
+                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all text-foreground"
                                         value={editingSite.campanha_id || ''}
                                         onChange={e => setEditingSite({ ...editingSite, campanha_id: e.target.value })}
                                     >
-                                        <option value="" className="bg-slate-900 text-white">Nenhuma</option>
-                                        {campanhas.map(c => <option key={c.id} value={c.id} className="bg-slate-900 text-white">{c.nome_campanha}</option>)}
+                                        <option value="">Nenhuma</option>
+                                        {campanhas.map(c => <option key={c.id} value={c.id}>{c.nome_campanha}</option>)}
                                     </select>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Status do Contato</label>
                                     <select
-                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
+                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all text-foreground"
                                         value={editingSite.status_contato || 'lead'}
                                         onChange={e => setEditingSite({ ...editingSite, status_contato: e.target.value })}
                                     >
-                                        <option value="lead" className="bg-slate-900 text-white">Lead (Pronto para enviar)</option>
-                                        <option value="contatado" className="bg-slate-900 text-white">Contatado (Aguardando resposta/follow-up)</option>
-                                        <option value="respondeu" className="bg-slate-900 text-white">Respondeu</option>
-                                        <option value="fechado" className="bg-slate-900 text-white">Fechado</option>
-                                        <option value="recusado" className="bg-slate-900 text-white">Recusado</option>
+                                        <option value="lead">Lead (Pronto para enviar)</option>
+                                        <option value="contatado">Contatado (Aguardando resposta/follow-up)</option>
+                                        <option value="respondeu">Respondeu</option>
+                                        <option value="fechado">Fechado</option>
+                                        <option value="recusado">Recusado</option>
                                     </select>
                                 </div>
                             </div>
@@ -538,7 +538,7 @@ export default function SitesPage() {
                                 <button
                                     type="submit"
                                     disabled={isSaving}
-                                    className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-white font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                                    className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2"
                                 >
                                     {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar Alterações'}
                                 </button>
@@ -554,7 +554,7 @@ export default function SitesPage() {
                     <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl p-6 space-y-6 animate-in zoom-in-95 duration-200">
                         <div className="flex justify-between items-center">
                             <h3 className="text-xl font-bold flex items-center gap-2">
-                                <Zap className="w-5 h-5 text-primary" />
+                                <Zap className="w-5 h-5 text-indigo-600" />
                                 Atribuir Campanha em Massa
                             </h3>
                             <button onClick={() => setIsBulkModalOpen(false)} className="p-2 hover:bg-muted rounded-full transition-colors">
@@ -569,7 +569,7 @@ export default function SitesPage() {
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Selecione a Campanha</label>
                             <select
-                                className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
                                 value={bulkCampanhaId}
                                 onChange={e => setBulkCampanhaId(e.target.value)}
                             >
@@ -589,7 +589,7 @@ export default function SitesPage() {
                             <button
                                 onClick={handleBulkAssign}
                                 disabled={isSaving}
-                                className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-white font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                                className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2"
                             >
                                 {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                                 Confirmar Alteração
@@ -606,3 +606,4 @@ export default function SitesPage() {
 function cn(...inputs: any[]) {
     return inputs.filter(Boolean).join(' ');
 }
+
