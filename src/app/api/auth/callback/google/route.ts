@@ -83,8 +83,12 @@ export async function GET(request: Request) {
             }, { status: 500 });
         }
 
-        // Usar APP_URL (runtime) para garantir URL correta em produção
-        const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+        // Hostinger usa reverse proxy - usar x-forwarded-host para obter URL pública real
+        const forwardedHost = request.headers.get('x-forwarded-host');
+        const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
+        const appUrl = forwardedHost
+            ? `${forwardedProto}://${forwardedHost}`
+            : (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin);
         return NextResponse.redirect(new URL('/dashboard', appUrl));
     } catch (error) {
         console.error('OAuth Error:', error);
