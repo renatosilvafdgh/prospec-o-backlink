@@ -1,0 +1,25 @@
+name: Automation Cron Jobs
+
+on:
+  schedule:
+    # A cada 30 minutos: Verifica novas respostas no Gmail
+    - cron: '*/30 * * * *'
+    # A cada hora: Processa o envio de e-mails das campanhas
+    - cron: '0 * * * *'
+  workflow_dispatch: # Permite rodar manualmente pelo GitHub
+
+jobs:
+  automation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Replies (Every 30 min)
+        # Executa apenas se o cron for de 30 min ou manual
+        if: github.event.schedule == '*/30 * * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl -X GET "https://prospec-o-backlink.vercel.app/api/automation/replies?secret=${{ secrets.CRON_SECRET }}"
+
+      - name: Process Campaigns (Every 1 hour)
+        # Executa no início de cada hora ou manual
+        if: github.event.schedule == '0 * * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl -X GET "https://prospec-o-backlink.vercel.app/api/automation/process?secret=${{ secrets.CRON_SECRET }}"
