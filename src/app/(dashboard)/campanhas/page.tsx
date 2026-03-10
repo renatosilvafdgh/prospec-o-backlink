@@ -22,6 +22,7 @@ export default function CampanhasPage() {
         intervalo_envio_segundos: 0,
         usar_intervalo_humano: false,
         template_inicial: '',
+        template_followup: null as string | null,
         sequencia_followup: [] as { template_id: string; dias: number }[],
         ativa: true
     });
@@ -97,6 +98,7 @@ export default function CampanhasPage() {
                 intervalo_envio_segundos: 0,
                 usar_intervalo_humano: false,
                 template_inicial: '',
+                template_followup: null,
                 sequencia_followup: [],
                 ativa: true
             });
@@ -119,6 +121,7 @@ export default function CampanhasPage() {
             intervalo_envio_segundos: campanha.intervalo_envio_segundos || 0,
             usar_intervalo_humano: campanha.usar_intervalo_humano || false,
             template_inicial: campanha.template_inicial,
+            template_followup: campanha.template_followup || null,
             sequencia_followup: campanha.sequencia_followup || [],
             ativa: campanha.ativa
         });
@@ -356,6 +359,7 @@ export default function CampanhasPage() {
                                             intervalo_envio_segundos: 0,
                                             usar_intervalo_humano: false,
                                             template_inicial: '',
+                                            template_followup: null,
                                             sequencia_followup: [],
                                             ativa: true
                                         });
@@ -544,6 +548,7 @@ export default function CampanhasPage() {
                                                 intervalo_envio_segundos: 0,
                                                 usar_intervalo_humano: false,
                                                 template_inicial: '',
+                                                template_followup: null,
                                                 sequencia_followup: [],
                                                 ativa: true
                                             });
