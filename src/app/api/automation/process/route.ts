@@ -104,6 +104,35 @@ export async function GET(request: Request) {
 
             console.log(`-> Sites prontos para processamento (Leads: ${sitesLead?.length || 0}, Followup: ${sitesFollowup?.length || 0})`);
 
+            // 6.5 Verificar intervalo desde o último envio (Modo Humano ou Intervalo Fixo)
+            // Se o intervalo humano estiver ativo, garantimos que passou entre 3 e 12 minutos
+            const { data: ultimoEnvio } = await supabase
+                .from('email_logs')
+                .select('data_envio')
+                .eq('campanha_id', campanha.id)
+                .eq('status_envio', 'sucesso')
+                .order('data_envio', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (ultimoEnvio) {
+                const tempoPassadoS = (Date.now() - new Date(ultimoEnvio.data_envio).getTime()) / 1000;
+                let intervaloNecessario = 0;
+
+                if (campanha.usar_intervalo_humano) {
+                    // Se for modo humano, definimos um intervalo randômico fixo para a verificação (ex: 5 min) 
+                    // ou podemos usar um valor randômico por execução. Vamos usar 180s (3min) como mínimo segurança.
+                    intervaloNecessario = 180;
+                } else if (campanha.intervalo_envio_segundos > 0) {
+                    intervaloNecessario = campanha.intervalo_envio_segundos;
+                }
+
+                if (tempoPassadoS < intervaloNecessario) {
+                    console.log(`-> [Aguardando] Campanha ${campanha.id} em intervalo. Passaram ${Math.floor(tempoPassadoS)}s de ${intervaloNecessario}s.`);
+                    continue;
+                }
+            }
+
             // 7. Processar APENAS UM Site por execução para evitar travar o processo (Erro 503)
             const site = allSites[0];
             if (!site) {
