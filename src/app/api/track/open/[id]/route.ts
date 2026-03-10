@@ -3,9 +3,9 @@ import { createAdminClient } from '@/utils/supabase/admin';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
-    const logId = params.id;
+    const { id: logId } = await params;
     const supabase = createAdminClient();
 
     try {
