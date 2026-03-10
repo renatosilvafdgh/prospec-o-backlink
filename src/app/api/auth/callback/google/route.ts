@@ -2,12 +2,6 @@ import { NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { createClient } from '@/utils/supabase/server';
 
-const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
-);
-
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');
@@ -15,6 +9,20 @@ export async function GET(request: Request) {
     if (!code) {
         return NextResponse.json({ error: 'No code provided' }, { status: 400 });
     }
+
+    // Calcular redirectUri dinâmico exatamente como na rota de início
+    const forwardedHost = request.headers.get('x-forwarded-host');
+    const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
+    const origin = forwardedHost
+        ? `${forwardedProto}://${forwardedHost}`
+        : new URL(request.url).origin;
+    const redirectUri = `${origin}/api/auth/callback/google`;
+
+    const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        redirectUri
+    );
 
     try {
         const { tokens } = await oauth2Client.getToken(code);

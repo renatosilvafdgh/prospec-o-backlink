@@ -1,10 +1,12 @@
 import { google } from 'googleapis';
 
-const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
-);
+function getOAuth2Client(redirectUri?: string) {
+    return new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        redirectUri || process.env.GOOGLE_REDIRECT_URI
+    );
+}
 
 export const GMAIL_SCOPES = [
     'https://www.googleapis.com/auth/userinfo.email',
@@ -14,16 +16,17 @@ export const GMAIL_SCOPES = [
 ];
 
 export function getAuthUrl(redirectUri?: string) {
-    return oauth2Client.generateAuthUrl({
+    const client = getOAuth2Client(redirectUri);
+    return client.generateAuthUrl({
         access_type: 'offline',
         scope: GMAIL_SCOPES,
         prompt: 'consent',
-        redirect_uri: redirectUri || process.env.GOOGLE_REDIRECT_URI,
     });
 }
 
-export async function getTokens(code: string) {
-    const { tokens } = await oauth2Client.getToken(code);
+export async function getTokens(code: string, redirectUri?: string) {
+    const client = getOAuth2Client(redirectUri);
+    const { tokens } = await client.getToken(code);
     return tokens;
 }
 
