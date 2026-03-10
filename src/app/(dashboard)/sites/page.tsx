@@ -278,9 +278,15 @@ export default function SitesPage() {
         if (selectedSites.length === 0) return;
         try {
             setIsSaving(true);
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
             const { error } = await supabase
                 .from('sites')
-                .update({ campanha_id: bulkCampanhaId || null })
+                .update({
+                    campanha_id: bulkCampanhaId || null,
+                    user_id: user.id
+                })
                 .in('id', selectedSites);
             if (error) throw error;
             alert(`${selectedSites.length} sites atualizados com sucesso!`);
