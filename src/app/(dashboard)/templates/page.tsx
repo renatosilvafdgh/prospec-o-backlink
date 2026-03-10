@@ -370,7 +370,7 @@ export default function TemplatesPage() {
                                         <div className="relative rounded-2xl bg-[#1e293b] border border-slate-700/50 overflow-hidden shadow-sm">
                                             <div
                                                 ref={contentBackdropRef}
-                                                className="absolute inset-0 px-4 py-3 pointer-events-none whitespace-pre-wrap break-words text-white font-sans text-sm leading-relaxed"
+                                                className="absolute inset-0 px-4 py-3 pointer-events-none whitespace-pre-wrap break-words text-white font-sans text-sm leading-relaxed overflow-hidden"
                                                 dangerouslySetInnerHTML={renderHighlightedTags(newTemplate.corpo_email)}
                                             />
                                             <textarea
