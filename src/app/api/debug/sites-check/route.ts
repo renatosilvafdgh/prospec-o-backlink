@@ -1,23 +1,19 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
+import { createAdminClient } from '@/utils/supabase/admin';
 
 export async function GET() {
     try {
-        const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+        const supabase = createAdminClient();
 
         // Check campanhas
         const { data: campanhas, error: campError } = await supabase
             .from('campanhas')
-            .select('id, nome_campanha, sites:sites(count)')
-            .eq('user_id', user.id);
+            .select('id, nome_campanha, user_id, sites:sites(count)');
 
         // Check sites count per campaign manually just in case
         const { data: sitesWithCamp, error: sitesError } = await supabase
             .from('sites')
-            .select('id, campanha_id')
-            .eq('user_id', user.id);
+            .select('id, campanha_id, user_id');
 
         const summary = {
             totalCampanhas: campanhas?.length || 0,
