@@ -2,6 +2,20 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
+    // 1. Filtrar IMEDIATAMENTE antes de qualquer inicialização pesada
+    if (
+        request.nextUrl.pathname.startsWith('/_next') ||
+        request.nextUrl.pathname.startsWith('/api') ||
+        request.nextUrl.pathname.startsWith('/favicon.ico') ||
+        request.nextUrl.pathname.endsWith('.png') ||
+        request.nextUrl.pathname.endsWith('.jpg') ||
+        request.nextUrl.pathname.endsWith('.jpeg') ||
+        request.nextUrl.pathname.endsWith('.gif') ||
+        request.nextUrl.pathname.endsWith('.svg')
+    ) {
+        return NextResponse.next({ request })
+    }
+
     let supabaseResponse = NextResponse.next({
         request,
     })
@@ -26,20 +40,6 @@ export async function updateSession(request: NextRequest) {
             },
         }
     )
-
-    // Do not run on static assets
-    if (
-        request.nextUrl.pathname.startsWith('/_next') ||
-        request.nextUrl.pathname.startsWith('/api') ||
-        request.nextUrl.pathname.startsWith('/favicon.ico') ||
-        request.nextUrl.pathname.endsWith('.png') ||
-        request.nextUrl.pathname.endsWith('.jpg') ||
-        request.nextUrl.pathname.endsWith('.jpeg') ||
-        request.nextUrl.pathname.endsWith('.gif') ||
-        request.nextUrl.pathname.endsWith('.svg')
-    ) {
-        return supabaseResponse
-    }
 
     const {
         data: { user },
