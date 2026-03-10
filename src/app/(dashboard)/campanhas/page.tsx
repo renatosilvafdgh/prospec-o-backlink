@@ -20,6 +20,7 @@ export default function CampanhasPage() {
         nome_campanha: '',
         emails_por_dia: 50,
         intervalo_envio_segundos: 0,
+        usar_intervalo_humano: false,
         template_inicial: '',
         sequencia_followup: [] as { template_id: string; dias: number }[],
         ativa: true
@@ -94,6 +95,7 @@ export default function CampanhasPage() {
                 nome_campanha: '',
                 emails_por_dia: 50,
                 intervalo_envio_segundos: 0,
+                usar_intervalo_humano: false,
                 template_inicial: '',
                 sequencia_followup: [],
                 ativa: true
@@ -115,6 +117,7 @@ export default function CampanhasPage() {
             nome_campanha: campanha.nome_campanha,
             emails_por_dia: campanha.emails_por_dia,
             intervalo_envio_segundos: campanha.intervalo_envio_segundos || 0,
+            usar_intervalo_humano: campanha.usar_intervalo_humano || false,
             template_inicial: campanha.template_inicial,
             sequencia_followup: campanha.sequencia_followup || [],
             ativa: campanha.ativa
@@ -351,6 +354,7 @@ export default function CampanhasPage() {
                                             nome_campanha: '',
                                             emails_por_dia: 50,
                                             intervalo_envio_segundos: 0,
+                                            usar_intervalo_humano: false,
                                             template_inicial: '',
                                             sequencia_followup: [],
                                             ativa: true
@@ -500,6 +504,27 @@ export default function CampanhasPage() {
                                             </select>
                                         </div>
 
+                                        <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-800/40 border border-slate-700/50 shadow-sm transition-all hover:border-indigo-500/30">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400">
+                                                    <Zap className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-white">Modo Envio Humano</p>
+                                                    <p className="text-[10px] text-slate-400">Intervalos aleatórios de 3 a 12 min (Anti-Spam)</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setNewCampanha({ ...newCampanha, usar_intervalo_humano: !newCampanha.usar_intervalo_humano })}
+                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${newCampanha.usar_intervalo_humano ? 'bg-indigo-600' : 'bg-slate-700'}`}
+                                            >
+                                                <span
+                                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${newCampanha.usar_intervalo_humano ? 'translate-x-6' : 'translate-x-1'}`}
+                                                />
+                                            </button>
+                                        </div>
+
                                         <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex gap-3 items-start backdrop-blur-sm">
                                             <Info className="w-5 h-5 text-white mt-0.5 shrink-0" />
                                             <p className="text-xs text-white leading-relaxed font-medium">A campanha processará automaticamente novos sites adicionados que ainda não foram contatados.</p>
@@ -517,6 +542,7 @@ export default function CampanhasPage() {
                                                 nome_campanha: '',
                                                 emails_por_dia: 50,
                                                 intervalo_envio_segundos: 0,
+                                                usar_intervalo_humano: false,
                                                 template_inicial: '',
                                                 sequencia_followup: [],
                                                 ativa: true
