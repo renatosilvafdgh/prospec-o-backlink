@@ -208,7 +208,13 @@ export async function GET(request: Request) {
                     totalProcessed++;
 
                     // Aguardar o intervalo configurado antes do próximo envio
-                    if (campanha.intervalo_envio_segundos > 0) {
+                    if (campanha.usar_intervalo_humano) {
+                        const min = 180; // 3 min
+                        const max = 720; // 12 min
+                        const randomSleep = Math.floor(Math.random() * (max - min + 1)) + min;
+                        console.log(`[Automação] Modo Humano: Aguardando ${randomSleep}s (intervalo 3-12 min) antes do próximo envio...`);
+                        await sleep(randomSleep * 1000);
+                    } else if (campanha.intervalo_envio_segundos > 0) {
                         console.log(`[Automação] Aguardando ${campanha.intervalo_envio_segundos}s antes do próximo envio...`);
                         await sleep(campanha.intervalo_envio_segundos * 1000);
                     }
