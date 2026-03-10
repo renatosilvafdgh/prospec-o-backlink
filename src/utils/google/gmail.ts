@@ -13,11 +13,12 @@ export const GMAIL_SCOPES = [
     'https://www.googleapis.com/auth/gmail.modify',
 ];
 
-export function getAuthUrl() {
+export function getAuthUrl(redirectUri?: string) {
     return oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: GMAIL_SCOPES,
         prompt: 'consent',
+        redirect_uri: redirectUri || process.env.GOOGLE_REDIRECT_URI,
     });
 }
 

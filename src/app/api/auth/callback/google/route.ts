@@ -86,10 +86,24 @@ export async function GET(request: Request) {
         // Hostinger usa reverse proxy - usar x-forwarded-host para obter URL pública real
         const forwardedHost = request.headers.get('x-forwarded-host');
         const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
-        const appUrl = forwardedHost
+
+        // Garantir que a URL base tenha o protocolo correto
+        let baseUrl = forwardedHost
             ? `${forwardedProto}://${forwardedHost}`
             : (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin);
-        return NextResponse.redirect(new URL('/dashboard', appUrl));
+
+        // Se a baseUrl não começar com http, adicionar https://
+        if (!baseUrl.startsWith('http')) {
+            baseUrl = `https://${baseUrl}`;
+        }
+
+        try {
+            return NextResponse.redirect(new URL('/dashboard', baseUrl));
+        } catch (urlError) {
+            console.error('Erro ao construir URL de redirecionamento:', urlError, { baseUrl });
+            // Fallback para redirect relativo se falhar
+            return NextResponse.redirect(new URL('/dashboard', new URL(request.url).origin));
+        }
     } catch (error) {
         console.error('OAuth Error:', error);
         return NextResponse.json({ error: 'OAuth failed' }, { status: 500 });
