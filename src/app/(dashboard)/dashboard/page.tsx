@@ -59,15 +59,20 @@ export default function DashboardPage() {
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', user.id);
 
-            const responseRate = totalSent && totalSent > 0
-                ? `${(((responses || 0) / totalSent) * 100).toFixed(1)}%`
-                : '0%';
+            // 4. Aberturas e Cliques (Total)
+            const { data: interactionData } = await supabase
+                .from('email_logs')
+                .select('aberturas, cliques')
+                .eq('user_id', user.id);
+
+            const totalOpenings = interactionData?.reduce((acc, curr) => acc + (curr.aberturas || 0), 0) || 0;
+            const totalClicks = interactionData?.reduce((acc, curr) => acc + (curr.cliques || 0), 0) || 0;
 
             setStats([
                 { label: 'Total de Sites', value: totalSites?.toLocaleString() || '0', icon: Users, color: 'text-blue-500' },
                 { label: 'E-mails Hoje', value: sentToday?.toLocaleString() || '0', icon: Send, color: 'text-indigo-500' },
-                { label: 'Respostas', value: responses?.toLocaleString() || '0', icon: MessageSquare, color: 'text-emerald-500' },
-                { label: 'Taxa de Resposta', value: responseRate, icon: TrendingUp, color: 'text-amber-500' },
+                { label: 'Aberturas', value: totalOpenings.toLocaleString(), icon: Mail, color: 'text-emerald-500' },
+                { label: 'Cliques', value: totalClicks.toLocaleString(), icon: TrendingUp, color: 'text-amber-500' },
             ]);
 
         } catch (error) {

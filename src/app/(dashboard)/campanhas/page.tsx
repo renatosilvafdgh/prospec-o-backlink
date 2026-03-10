@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Play, Pause, Trash2, Mail, Calendar, Zap, Clock, Loader2, X, Settings2, Info, BarChart3 } from 'lucide-react';
+import { Plus, Play, Pause, Trash2, Mail, Calendar, Zap, Clock, Loader2, X, Settings2, Info, BarChart3, Check } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
+import { ModalPortal } from '@/components/ui/ModalPortal';
 
 export default function CampanhasPage() {
     const [campanhas, setCampanhas] = useState<any[]>([]);
@@ -13,14 +14,14 @@ export default function CampanhasPage() {
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [templates, setTemplates] = useState<any[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [editingCampanha, setEditingCampanha] = useState<any | null>(null);
 
     const [newCampanha, setNewCampanha] = useState({
         nome_campanha: '',
         emails_por_dia: 50,
-        intervalo_followup_dias: 3,
         intervalo_envio_segundos: 0,
         template_inicial: '',
-        template_followup: '',
+        sequencia_followup: [] as { template_id: string; dias: number }[],
         ativa: true
     });
 
@@ -48,8 +49,9 @@ export default function CampanhasPage() {
                 .from('campanhas')
                 .select(`
                     *,
-                    template_inicial:email_templates!campanhas_template_inicial_fkey(nome_template),
-                    template_followup:email_templates!campanhas_template_followup_fkey(nome_template)
+                    template_inicial_info:email_templates!campanhas_template_inicial_fkey(nome_template),
+                    template_followup_info:email_templates!campanhas_template_followup_fkey(nome_template),
+                    sites:sites(count)
                 `)
                 .eq('user_id', user.id)
                 .order('created_at', { ascending: false });
@@ -63,31 +65,40 @@ export default function CampanhasPage() {
         }
     }
 
-    async function handleAddCampanha(e: React.FormEvent) {
+    async function handleSaveCampanha(e: React.FormEvent) {
         e.preventDefault();
         try {
             setIsSaving(true);
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            const { error } = await supabase
-                .from('campanhas')
-                .insert([{
-                    ...newCampanha,
-                    user_id: user.id
-                }]);
-
-            if (error) throw error;
+            if (editingCampanha) {
+                const { error } = await supabase
+                    .from('campanhas')
+                    .update({
+                        ...newCampanha
+                    })
+                    .eq('id', editingCampanha.id);
+                if (error) throw error;
+            } else {
+                const { error } = await supabase
+                    .from('campanhas')
+                    .insert([{
+                        ...newCampanha,
+                        user_id: user.id
+                    }]);
+                if (error) throw error;
+            }
 
             setNewCampanha({
                 nome_campanha: '',
                 emails_por_dia: 50,
-                intervalo_followup_dias: 3,
                 intervalo_envio_segundos: 0,
                 template_inicial: '',
-                template_followup: '',
+                sequencia_followup: [],
                 ativa: true
             });
+            setEditingCampanha(null);
             setIsModalOpen(false);
             fetchCampanhas();
         } catch (error) {
@@ -96,6 +107,19 @@ export default function CampanhasPage() {
         } finally {
             setIsSaving(false);
         }
+    }
+
+    function handleEditClick(campanha: any) {
+        setEditingCampanha(campanha);
+        setNewCampanha({
+            nome_campanha: campanha.nome_campanha,
+            emails_por_dia: campanha.emails_por_dia,
+            intervalo_envio_segundos: campanha.intervalo_envio_segundos || 0,
+            template_inicial: campanha.template_inicial,
+            sequencia_followup: campanha.sequencia_followup || [],
+            ativa: campanha.ativa
+        });
+        setIsModalOpen(true);
     }
 
     async function handleDeleteCampanha(id: string) {
@@ -222,66 +246,77 @@ export default function CampanhasPage() {
                     </button>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {campanhas.map((campanha) => (
-                        <div key={campanha.id} className="p-8 rounded-3xl glass border border-border flex flex-col gap-6 relative overflow-hidden group">
-                            <div className={`absolute top-0 right-0 w-24 h-24 -mr-12 -mt-12 rotate-45 ${campanha.ativa ? 'bg-emerald-500/10' : 'bg-muted'}`} />
+                        <div key={campanha.id} className="p-5 rounded-3xl glass border border-border flex flex-col gap-4 relative overflow-hidden group hover:border-indigo-500/30 transition-all duration-300">
+                            <div className={`absolute top-0 right-0 w-20 h-20 -mr-10 -mt-10 rotate-45 ${campanha.ativa ? 'bg-emerald-500/10' : 'bg-muted'}`} />
 
                             <div className="flex justify-between items-start relative z-10">
-                                <div className="space-y-1">
+                                <div className="space-y-0.5">
                                     <div className="flex items-center gap-2">
-                                        <h3 className="text-xl font-bold">{campanha.nome_campanha}</h3>
-                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${campanha.ativa ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-muted text-muted-foreground border border-border'}`}>
+                                        <h3 className="text-base font-bold text-slate-900 truncate max-w-[120px]" title={campanha.nome_campanha}>{campanha.nome_campanha}</h3>
+                                        <span className={`px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider ${campanha.ativa ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
                                             {campanha.ativa ? 'Ativa' : 'Pausada'}
                                         </span>
                                     </div>
-                                    <p className="text-sm text-muted-foreground flex items-center gap-1.5 font-mono text-xs uppercase">
+                                    <p className="text-[10px] text-slate-400 flex items-center gap-1.5 font-mono uppercase tracking-tighter">
                                         ID: {campanha.id.split('-')[0]}
                                     </p>
                                 </div>
 
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1.5">
+                                    <button
+                                        onClick={() => handleEditClick(campanha)}
+                                        className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all">
+                                        <Settings2 className="w-4 h-4" />
+                                    </button>
                                     <button
                                         onClick={() => toggleStatus(campanha.id, campanha.ativa)}
-                                        className={`p-3 rounded-xl transition-all ${campanha.ativa ? 'bg-muted hover:bg-accent text-foreground' : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500'}`}>
-                                        {campanha.ativa ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                                        className={`p-2 rounded-xl transition-all ${campanha.ativa ? 'bg-slate-100 hover:bg-slate-200 text-slate-600' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600'}`}>
+                                        {campanha.ativa ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                                     </button>
                                     <button
                                         onClick={() => handleDeleteCampanha(campanha.id)}
                                         disabled={isDeleting === campanha.id}
-                                        className="p-3 rounded-xl bg-muted hover:bg-destructive/10 hover:text-destructive text-muted-foreground transition-all"
+                                        className="p-2 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-400 transition-all"
                                     >
-                                        {isDeleting === campanha.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                                        {isDeleting === campanha.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                                     </button>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="p-4 rounded-2xl bg-accent/30 border border-border flex flex-col gap-1">
-                                    <span className="text-xs text-muted-foreground font-medium uppercase tracking-tight">Template Inicial</span>
-                                    <span className="text-sm font-bold truncate">{campanha.template_inicial?.nome_template || 'Não definido'}</span>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex flex-col gap-0.5">
+                                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-tight">Template Inicial</span>
+                                    <span className="text-xs font-bold truncate text-slate-700">{campanha.template_inicial_info?.nome_template || '—'}</span>
                                 </div>
-                                <div className="p-4 rounded-2xl bg-accent/30 border border-border flex flex-col gap-1">
-                                    <span className="text-xs text-muted-foreground font-medium uppercase tracking-tight">Follow-up</span>
-                                    <span className="text-sm font-bold truncate">{campanha.template_followup?.nome_template || 'Não definido'}</span>
+                                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex flex-col gap-0.5">
+                                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-tight">Sequência</span>
+                                    <span className="text-xs font-bold truncate text-slate-700">
+                                        {campanha.sequencia_followup?.length || 0} {campanha.sequencia_followup?.length === 1 ? 'Follow-up' : 'Follow-ups'}
+                                    </span>
                                 </div>
                             </div>
 
-                            <div className="flex flex-wrap gap-3">
-                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent/50 text-xs border border-border">
-                                    <Zap className="w-3.5 h-3.5 text-amber-500" />
-                                    <span>{campanha.emails_por_dia} e-mails/dia</span>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-slate-50 text-[10px] border border-slate-100 text-slate-600">
+                                    <Mail className="w-3 h-3 text-rose-500" />
+                                    <span className="truncate">{campanha.sites?.[0]?.count || 0} e-mails</span>
                                 </div>
-                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent/50 text-xs border border-border">
-                                    <Calendar className="w-3.5 h-3.5 text-indigo-500" />
-                                    <span>Follow-up {campanha.intervalo_followup_dias} dias</span>
+                                <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-slate-50 text-[10px] border border-slate-100 text-slate-600">
+                                    <Zap className="w-3 h-3 text-amber-500" />
+                                    <span className="truncate">{campanha.emails_por_dia}/dia</span>
                                 </div>
-                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent/50 text-xs border border-border">
-                                    <Clock className="w-3.5 h-3.5 text-sky-500" />
-                                    <span>Intervalo: {campanha.intervalo_envio_segundos > 0 ? (() => {
+                                <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-slate-50 text-[10px] border border-slate-100 text-slate-600">
+                                    <Calendar className="w-3 h-3 text-indigo-500" />
+                                    <span className="truncate">Ciclo: {campanha.sequencia_followup?.reduce((acc: number, s: any) => acc + (s.dias || 0), 0) || 0}d</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-slate-50 text-[10px] border border-slate-100 text-slate-600">
+                                    <Clock className="w-3 h-3 text-sky-500" />
+                                    <span className="truncate">{campanha.intervalo_envio_segundos > 0 ? (() => {
                                         const s = campanha.intervalo_envio_segundos;
                                         if (s >= 3600) return `${s / 3600}h`;
-                                        if (s >= 60) return `${s / 60} min`;
+                                        if (s >= 60) return `${s / 60}m`;
                                         return `${s}s`;
                                     })() : 'sem delay'}</span>
                                 </div>
@@ -289,126 +324,217 @@ export default function CampanhasPage() {
 
                             <Link
                                 href={`/campanhas/${campanha.id}`}
-                                className="w-full py-4 mt-2 rounded-2xl bg-primary/5 hover:bg-primary/10 text-indigo-600 font-bold transition-all border border-primary/20 flex items-center justify-center gap-2"
+                                className="w-full py-2.5 mt-1 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition-all border border-indigo-200 flex items-center justify-center gap-2"
                             >
-                                <BarChart3 className="w-4 h-4" />
-                                Relatório da Campanha
+                                <BarChart3 className="w-3.5 h-3.5" />
+                                Relatório Completo
                             </Link>
                         </div>
                     ))}
                 </div>
             )}
 
-            {/* Modal de Criação */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="w-full max-w-xl bg-card border border-border rounded-2xl shadow-2xl p-6 space-y-6 animate-in zoom-in-95 duration-200">
-                        <div className="flex justify-between items-center">
-                            <h3 className="text-xl font-bold flex items-center gap-2">
-                                <Settings2 className="w-5 h-5 text-indigo-600" />
-                                Criar Nova Campanha
-                            </h3>
-                            <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-muted rounded-full transition-colors">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleAddCampanha} className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Nome da Campanha</label>
-                                <input
-                                    required
-                                    type="text"
-                                    placeholder="Ex: Prospecção Tech BR"
-                                    className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
-                                    value={newCampanha.nome_campanha}
-                                    onChange={e => setNewCampanha({ ...newCampanha, nome_campanha: e.target.value })}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Template Inicial</label>
-                                    <select
-                                        required
-                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
-                                        value={newCampanha.template_inicial}
-                                        onChange={e => setNewCampanha({ ...newCampanha, template_inicial: e.target.value })}
-                                    >
-                                        <option value="">Selecione...</option>
-                                        {templates.map(t => <option key={t.id} value={t.id}>{t.nome_template}</option>)}
-                                    </select>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Template Follow-up</label>
-                                    <select
-                                        required
-                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
-                                        value={newCampanha.template_followup}
-                                        onChange={e => setNewCampanha({ ...newCampanha, template_followup: e.target.value })}
-                                    >
-                                        <option value="">Selecione...</option>
-                                        {templates.map(t => <option key={t.id} value={t.id}>{t.nome_template}</option>)}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Envios por dia</label>
-                                    <input
-                                        type="number"
-                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
-                                        value={newCampanha.emails_por_dia}
-                                        onChange={e => setNewCampanha({ ...newCampanha, emails_por_dia: parseInt(e.target.value) })}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Dias para Follow-up</label>
-                                    <input
-                                        type="number"
-                                        className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
-                                        value={newCampanha.intervalo_followup_dias}
-                                        onChange={e => setNewCampanha({ ...newCampanha, intervalo_followup_dias: parseInt(e.target.value) })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium flex items-center gap-2">
-                                    <Clock className="w-4 h-4 text-sky-500" />
-                                    Intervalo entre e-mails
-                                </label>
-                                <select
-                                    className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
-                                    value={newCampanha.intervalo_envio_segundos}
-                                    onChange={e => setNewCampanha({ ...newCampanha, intervalo_envio_segundos: parseInt(e.target.value) })}
+                <ModalPortal>
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xl animate-in fade-in duration-300">
+                        <div className="w-full max-w-xl bg-[#0f172a] border border-slate-800/60 rounded-3xl shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300">
+                            <div className="flex justify-between items-center p-6 border-b border-border shrink-0">
+                                <h3 className="text-xl font-bold flex items-center gap-2 text-white">
+                                    <Settings2 className="w-5 h-5 text-white" />
+                                    {editingCampanha ? 'Editar Campanha' : 'Criar Nova Campanha'}
+                                </h3>
+                                <button
+                                    onClick={() => {
+                                        setIsModalOpen(false);
+                                        setEditingCampanha(null);
+                                        setNewCampanha({
+                                            nome_campanha: '',
+                                            emails_por_dia: 50,
+                                            intervalo_envio_segundos: 0,
+                                            template_inicial: '',
+                                            sequencia_followup: [],
+                                            ativa: true
+                                        });
+                                    }}
+                                    className="p-2 hover:bg-slate-800 rounded-full transition-colors text-white"
                                 >
-                                    <option value={0}>Sem delay (mais rápido)</option>
-                                    <option value={10}>10 segundos</option>
-                                    <option value={30}>30 segundos</option>
-                                    <option value={60}>1 minuto</option>
-                                    <option value={120}>2 minutos</option>
-                                    <option value={300}>5 minutos</option>
-                                    <option value={600}>10 minutos</option>
-                                </select>
-                                <p className="text-xs text-muted-foreground">Tempo de espera entre o disparo de cada e-mail.</p>
-                            </div>
-
-                            <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/20 flex gap-3 items-start">
-                                <Info className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
-                                <p className="text-xs text-blue-200/70">A campanha processará automaticamente novos sites adicionados que ainda não foram contatados.</p>
-                            </div>
-
-                            <div className="flex gap-3 pt-4">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-border font-medium hover:bg-muted transition-all">Cancelar</button>
-                                <button type="submit" disabled={isSaving} className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2">
-                                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Criar Campanha'}
+                                    <X className="w-5 h-5" />
                                 </button>
                             </div>
-                        </form>
+
+                            <form onSubmit={handleSaveCampanha} className="p-8 space-y-8 overflow-y-auto custom-scrollbar bg-slate-900/50">
+                                <div className="space-y-6">
+                                    <div className="grid grid-cols-2 gap-5">
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-slate-300 ml-1">Nome da Campanha</label>
+                                            <input
+                                                required
+                                                type="text"
+                                                placeholder="Ex: Prospecção Tech BR"
+                                                className="w-full px-4 py-3.5 rounded-2xl bg-[#1e293b] border border-slate-700/50 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-sm"
+                                                value={newCampanha.nome_campanha}
+                                                onChange={e => setNewCampanha({ ...newCampanha, nome_campanha: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-slate-300 ml-1">Envios por dia</label>
+                                            <input
+                                                type="number"
+                                                className="w-full px-4 py-3.5 rounded-2xl bg-[#1e293b] border border-slate-700/50 text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-sm"
+                                                value={newCampanha.emails_por_dia}
+                                                onChange={e => setNewCampanha({ ...newCampanha, emails_por_dia: parseInt(e.target.value) })}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-slate-300 ml-1">Template Inicial (Primeiro Contato)</label>
+                                        <select
+                                            required
+                                            className="w-full px-4 py-3.5 rounded-2xl bg-[#1e293b] border border-slate-700/50 text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-sm appearance-none cursor-pointer"
+                                            value={newCampanha.template_inicial}
+                                            onChange={e => setNewCampanha({ ...newCampanha, template_inicial: e.target.value })}
+                                        >
+                                            <option value="">Selecione o template inicial</option>
+                                            {templates.map(t => <option key={t.id} value={t.id}>{t.nome_template}</option>)}
+                                        </select>
+                                    </div>
+
+                                    <div className="pt-6 border-t border-slate-800/60">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div>
+                                                <h4 className="text-base font-bold flex items-center gap-2 text-white ml-1 uppercase tracking-wider">
+                                                    <Clock className="w-5 h-5 text-indigo-400" /> Sequência de Follow-ups
+                                                </h4>
+                                                <p className="text-[11px] text-slate-500 ml-8 mt-1">Configure o que acontece se o destinatário não responder.</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const current = newCampanha.sequencia_followup || [];
+                                                    setNewCampanha({
+                                                        ...newCampanha,
+                                                        sequencia_followup: [...current, { template_id: '', dias: 3 }]
+                                                    });
+                                                }}
+                                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-all text-xs font-bold shadow-lg shadow-indigo-600/20"
+                                            >
+                                                <Plus className="w-4 h-4" /> Adicionar Passo
+                                            </button>
+                                        </div>
+
+                                        {(newCampanha.sequencia_followup || []).length === 0 ? (
+                                            <div className="p-8 rounded-3xl border-2 border-dashed border-slate-800 bg-slate-900/40 text-center">
+                                                <p className="text-slate-500 text-sm">Nenhum follow-up adicional configurado.</p>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-4">
+                                                {newCampanha.sequencia_followup.map((step, idx) => (
+                                                    <div key={idx} className="group relative grid grid-cols-[1fr,120px,auto] items-end gap-5 p-5 rounded-3xl bg-slate-900/60 border border-slate-800/60 hover:border-indigo-500/30 transition-all animate-in fade-in slide-in-from-top-2 duration-300 shadow-sm">
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Template do Passo {idx + 1}</label>
+                                                            <select
+                                                                required
+                                                                className="w-full px-4 py-3 rounded-2xl bg-[#1e293b] border border-slate-700/50 text-white text-sm focus:ring-4 focus:ring-indigo-500/10 outline-none cursor-pointer hover:bg-slate-800 transition-colors"
+                                                                value={step.template_id}
+                                                                onChange={e => {
+                                                                    const newSeq = [...newCampanha.sequencia_followup];
+                                                                    newSeq[idx].template_id = e.target.value;
+                                                                    setNewCampanha({ ...newCampanha, sequencia_followup: newSeq });
+                                                                }}
+                                                            >
+                                                                <option value="">Selecione o Template</option>
+                                                                {templates.map(t => <option key={t.id} value={t.id}>{t.nome_template}</option>)}
+                                                            </select>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 text-center block">Após (dias)</label>
+                                                            <input
+                                                                required
+                                                                type="number"
+                                                                min="1"
+                                                                className="w-full px-4 py-3 rounded-2xl bg-[#1e293b] border border-slate-700/50 text-white text-center text-sm focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all hover:bg-slate-800"
+                                                                value={step.dias}
+                                                                onChange={e => {
+                                                                    const newSeq = [...newCampanha.sequencia_followup];
+                                                                    newSeq[idx].dias = parseInt(e.target.value) || 0;
+                                                                    setNewCampanha({ ...newCampanha, sequencia_followup: newSeq });
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const newSeq = (newCampanha.sequencia_followup || []).filter((_, i) => i !== idx);
+                                                                setNewCampanha({ ...newCampanha, sequencia_followup: newSeq });
+                                                            }}
+                                                            className="p-3 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all"
+                                                            title="Remover passo"
+                                                        >
+                                                            <Trash2 className="w-5 h-5" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-4 pt-4 border-t border-slate-800/60">
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-white ml-1 flex items-center gap-2">
+                                                <Clock className="w-4 h-4 text-white" />
+                                                Intervalo entre e-mails
+                                            </label>
+                                            <select
+                                                className="w-full px-4 py-3 rounded-2xl bg-[#1e293b] border border-slate-700/50 text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-sm appearance-none cursor-pointer"
+                                                value={newCampanha.intervalo_envio_segundos}
+                                                onChange={e => setNewCampanha({ ...newCampanha, intervalo_envio_segundos: parseInt(e.target.value) })}
+                                            >
+                                                <option value={0}>Sem delay (mais rápido)</option>
+                                                <option value={10}>10 segundos</option>
+                                                <option value={30}>30 segundos</option>
+                                                <option value={60}>1 minuto</option>
+                                                <option value={120}>2 minutos</option>
+                                                <option value={300}>5 minutos</option>
+                                                <option value={600}>10 minutos</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex gap-3 items-start backdrop-blur-sm">
+                                            <Info className="w-5 h-5 text-white mt-0.5 shrink-0" />
+                                            <p className="text-xs text-white leading-relaxed font-medium">A campanha processará automaticamente novos sites adicionados que ainda não foram contatados.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-4 pt-6 mt-auto">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsModalOpen(false);
+                                            setEditingCampanha(null);
+                                            setNewCampanha({
+                                                nome_campanha: '',
+                                                emails_por_dia: 50,
+                                                intervalo_envio_segundos: 0,
+                                                template_inicial: '',
+                                                sequencia_followup: [],
+                                                ativa: true
+                                            });
+                                        }}
+                                        className="flex-1 px-4 py-3 rounded-xl border border-slate-700/50 text-white font-bold hover:bg-slate-800 transition-all"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button type="submit" disabled={isSaving} className="flex-1 px-4 py-3 rounded-xl bg-indigo-600 text-white font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20">
+                                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                                        {editingCampanha ? 'Salvar Alterações' : 'Criar Campanha'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
+                </ModalPortal>
             )}
         </div>
     );
