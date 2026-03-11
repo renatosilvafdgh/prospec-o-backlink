@@ -39,6 +39,7 @@ export default function InboxPage() {
     const [isSending, setIsSending] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const [mounted, setMounted] = useState(false);
+    const [mainTab, setMainTab] = useState<'inbox' | 'lixeira'>('inbox');
     const [readFilter, setReadFilter] = useState<'todos' | 'lidos' | 'nao_lidos'>('nao_lidos');
     const [classFilter, setClassFilter] = useState<string>('todos');
     const supabase = createClient();
@@ -74,6 +75,23 @@ export default function InboxPage() {
             setResponses(prev => prev.map(r => r.id === siteId ? { ...r, lido: true } : r));
         } catch (error) {
             console.error('Erro ao marcar como lido:', error);
+        }
+    }
+
+    async function moveToTrash(siteId: string) {
+        try {
+            await fetch('/api/inbox/update-site', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId, classificacao_lead: 'descartado' })
+            });
+            // Atualizar lista local
+            setResponses(prev => prev.map(r => r.id === siteId ? { ...r, classificacao_lead: 'descartado' } : r));
+            if (replyingTo?.id === siteId) {
+                setReplyingTo({ ...replyingTo, classificacao_lead: 'descartado' });
+            }
+        } catch (error) {
+            console.error('Erro ao mover para lixeira:', error);
         }
     }
 
@@ -150,7 +168,7 @@ export default function InboxPage() {
                     campanha:campanhas(nome_campanha)
                 `)
                 .eq('user_id', user.id)
-                .eq('status_contato', 'respondeu')
+                .in('status_contato', ['respondeu', 'invalid'])
                 .order('ultimo_contato', { ascending: false });
 
             if (error) throw error;
@@ -247,12 +265,24 @@ export default function InboxPage() {
         const matchesSearch = r.url.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (r.email && r.email.toLowerCase().includes(searchTerm.toLowerCase()));
         
-        const matchesRead = readFilter === 'todos' ? true : 
-                          readFilter === 'lidos' ? r.lido === true : r.lido === false;
-        
-        const matchesClass = classFilter === 'todos' ? true : r.classificacao_lead === classFilter;
+        // Lógica de Lixeira: Itens com status 'invalid' ou classificação 'descartado'
+        const isTrash = r.status_contato === 'invalid' || r.classificacao_lead === 'descartado';
 
-        return matchesSearch && matchesRead && matchesClass;
+        if (mainTab === 'lixeira') {
+            if (!isTrash) return false;
+        } else {
+            // No Inbox principal, ocultamos o que é lixo
+            if (isTrash) return false;
+            
+            const matchesRead = readFilter === 'todos' ? true : 
+                              readFilter === 'lidos' ? r.lido === true : r.lido === false;
+            
+            const matchesClass = classFilter === 'todos' ? true : r.classificacao_lead === classFilter;
+            
+            if (!matchesRead || !matchesClass) return false;
+        }
+
+        return matchesSearch;
     });
 
     const classificationOptions = [
@@ -285,27 +315,48 @@ export default function InboxPage() {
                 </div>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-4 items-center mb-2">
-                <div className="flex bg-white p-1 rounded-2xl border border-slate-200 shadow-sm w-full md:w-auto">
+            <div className="flex flex-col md:flex-row gap-6 items-start mb-6 border-b border-slate-100 pb-6">
+                <div className="flex gap-8">
                     <button
-                        onClick={() => setReadFilter('nao_lidos')}
-                        className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-sm font-bold transition-all ${readFilter === 'nao_lidos' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-500 hover:bg-slate-50'}`}
+                        onClick={() => setMainTab('inbox')}
+                        className={`text-lg font-bold pb-2 transition-all relative ${mainTab === 'inbox' ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
                     >
-                        Não Lidos
+                        Principais
+                        {mainTab === 'inbox' && <div className="absolute bottom-0 left-0 w-full h-1 bg-indigo-600 rounded-full" />}
                     </button>
                     <button
-                        onClick={() => setReadFilter('lidos')}
-                        className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-sm font-bold transition-all ${readFilter === 'lidos' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-500 hover:bg-slate-50'}`}
+                        onClick={() => setMainTab('lixeira')}
+                        className={`text-lg font-bold pb-2 transition-all relative ${mainTab === 'lixeira' ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
                     >
-                        Lidos
-                    </button>
-                    <button
-                        onClick={() => setReadFilter('todos')}
-                        className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-sm font-bold transition-all ${readFilter === 'todos' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-500 hover:bg-slate-50'}`}
-                    >
-                        Todos
+                        Lixeira
+                        {mainTab === 'lixeira' && <div className="absolute bottom-0 left-0 w-full h-1 bg-indigo-600 rounded-full" />}
                     </button>
                 </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-4 items-center mb-2">
+                {mainTab === 'inbox' && (
+                    <div className="flex bg-white p-1 rounded-2xl border border-slate-200 shadow-sm w-full md:w-auto shrink-0">
+                        <button
+                            onClick={() => setReadFilter('nao_lidos')}
+                            className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-sm font-bold transition-all ${readFilter === 'nao_lidos' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-500 hover:bg-slate-50'}`}
+                        >
+                            Não Lidos
+                        </button>
+                        <button
+                            onClick={() => setReadFilter('lidos')}
+                            className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-sm font-bold transition-all ${readFilter === 'lidos' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-500 hover:bg-slate-50'}`}
+                        >
+                            Lidos
+                        </button>
+                        <button
+                            onClick={() => setReadFilter('todos')}
+                            className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-sm font-bold transition-all ${readFilter === 'todos' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-500 hover:bg-slate-50'}`}
+                        >
+                            Todos
+                        </button>
+                    </div>
+                )}
 
                 <div className="flex-1 w-full relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -318,19 +369,21 @@ export default function InboxPage() {
                     />
                 </div>
 
-                <div className="w-full md:w-48 relative">
-                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <select
-                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white border border-slate-200 focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 outline-none transition-all shadow-sm text-slate-900 appearance-none font-medium text-sm"
-                        value={classFilter}
-                        onChange={(e) => setClassFilter(e.target.value)}
-                    >
-                        <option value="todos">Todas Categorias</option>
-                        {classificationOptions.map(opt => (
-                            <option key={opt.id} value={opt.id}>{opt.label}</option>
-                        ))}
-                    </select>
-                </div>
+                {mainTab === 'inbox' && (
+                    <div className="w-full md:w-48 relative">
+                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <select
+                            className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white border border-slate-200 focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 outline-none transition-all shadow-sm text-slate-900 appearance-none font-medium text-sm"
+                            value={classFilter}
+                            onChange={(e) => setClassFilter(e.target.value)}
+                        >
+                            <option value="todos">Todas Categorias</option>
+                            {classificationOptions.map(opt => (
+                                <option key={opt.id} value={opt.id}>{opt.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
             </div>
 
             {loading ? (
@@ -355,14 +408,20 @@ export default function InboxPage() {
                     {filteredResponses.map((site) => (
                         <div key={site.id}
                             onClick={() => setReplyingTo(site)}
-                            className={`group p-6 rounded-3xl bg-white border transition-all flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden cursor-pointer shadow-sm ${!site.lido ? 'border-indigo-200 ring-2 ring-indigo-50' : 'border-slate-100 hover:border-indigo-300'}`}>
+                            className={`group p-6 rounded-3xl bg-white border transition-all flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden cursor-pointer shadow-sm ${mainTab === 'lixeira' ? 'opacity-70 border-slate-100 grayscale-[0.3]' : (!site.lido ? 'border-indigo-200 ring-2 ring-indigo-50' : 'border-slate-100 hover:border-indigo-300')}`}>
                             
-                            <div className={`absolute top-0 left-0 w-1.5 h-full ${!site.lido ? 'bg-indigo-600' : 'bg-emerald-500'}`} />
+                            <div className={`absolute top-0 left-0 w-1.5 h-full ${mainTab === 'lixeira' ? 'bg-slate-300' : (!site.lido ? 'bg-indigo-600' : 'bg-emerald-500')}`} />
                             
-                            {!site.lido && (
+                            {mainTab === 'inbox' && !site.lido && (
                                 <div className="absolute top-4 right-4 flex items-center gap-1 text-[10px] font-black uppercase text-indigo-600 animate-pulse bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-100">
                                     <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
                                     Novo
+                                </div>
+                            )}
+
+                            {site.status_contato === 'invalid' && (
+                                <div className="absolute top-4 right-4 flex items-center gap-1 text-[10px] font-black uppercase text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-100">
+                                    E-mail Inválido
                                 </div>
                             )}
 
@@ -468,6 +527,19 @@ export default function InboxPage() {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
+                                    {mainTab === 'inbox' && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                moveToTrash(replyingTo.id);
+                                                setReplyingTo(null);
+                                            }}
+                                            className="p-3 hover:bg-white hover:shadow-md rounded-2xl transition-all text-slate-400 hover:text-rose-500 border border-transparent hover:border-slate-100 mr-2"
+                                            title="Mover para Lixeira"
+                                        >
+                                            <X className="w-5 h-5" />
+                                        </button>
+                                    )}
                                     {selectedThreadId && (
                                         <a
                                             href={`https://mail.google.com/mail/u/0/#thread/${selectedThreadId}`}
