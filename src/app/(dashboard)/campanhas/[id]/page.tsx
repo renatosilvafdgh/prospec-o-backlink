@@ -11,9 +11,13 @@ import {
     Zap,
     Users,
     BarChart3,
-    Loader2
+    Loader2,
+    AlertTriangle,
+    Trash2,
+    ShieldAlert
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
+import { toast } from 'sonner';
 
 export default function CampanhaReportPage() {
     const params = useParams();
@@ -21,7 +25,9 @@ export default function CampanhaReportPage() {
     const [campanha, setCampanha] = useState<any>(null);
     const [stats, setStats] = useState({ total: 0, sucesso: 0, erro: 0, respondidos: 0 });
     const [logs, setLogs] = useState<any[]>([]);
+    const [invalidEmails, setInvalidEmails] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState(false);
     const supabase = createClient();
 
     useEffect(() => {
@@ -61,10 +67,55 @@ export default function CampanhaReportPage() {
 
             setStats({ total, sucesso, erro, respondidos });
 
+            // 4. Buscar e-mails inválidos detectados
+            const { data: invalidData } = await supabase
+                .from('invalid_emails')
+                .select('*, site:sites(url, email)')
+                .eq('campanha_id', id)
+                .order('data_deteccao', { ascending: false });
+            
+            setInvalidEmails(invalidData || []);
+
         } catch (error) {
             console.error('Erro ao buscar relatório:', error);
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function handleRemoveInvalidEmails() {
+        if (!confirm('Deseja realmente remover todos os e-mails inválidos desta campanha? Isso alterará o status dos sites para evitar novos envios.')) return;
+
+        try {
+            setActionLoading(true);
+            const id = params.id as string;
+            
+            // 1. Identificar sites com bounce nesta campanha
+            const siteIds = invalidEmails.map(ie => ie.site_id).filter(Boolean);
+
+            if (siteIds.length === 0) {
+                toast.info('Nenhum e-mail inválido vinculado a sites encontrado.');
+                return;
+            }
+
+            // 2. Atualizar status dos sites para 'invalid' (exclui da campanha)
+            const { error: updateError } = await supabase
+                .from('sites')
+                .update({ 
+                    status_contato: 'invalid',
+                    campanha_id: null // Opcional: remover da campanha atual
+                })
+                .in('id', siteIds);
+
+            if (updateError) throw updateError;
+
+            toast.success(`${siteIds.length} e-mails removidos com sucesso.`);
+            fetchReportData();
+        } catch (error: any) {
+            console.error('Erro ao remover e-mails inválidos:', error);
+            toast.error('Ocorreu um erro ao processar a remoção.');
+        } finally {
+            setActionLoading(false);
         }
     }
 
@@ -142,6 +193,54 @@ export default function CampanhaReportPage() {
                     <div className="text-3xl font-bold">{stats.respondidos}</div>
                 </div>
             </div>
+
+            {/* E-mails Inválidos Section */}
+            {invalidEmails.length > 0 && (
+                <div className="rounded-2xl border border-destructive/20 bg-destructive/5 overflow-hidden animate-in slide-in-from-top-4 duration-500">
+                    <div className="px-6 py-4 border-b border-destructive/10 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <AlertTriangle className="w-5 h-5 text-destructive" />
+                            <div>
+                                <h3 className="font-bold text-destructive">E-mails Inválidos Detectados</h3>
+                                <p className="text-xs text-destructive/80">Estes endereços retornaram erro permanente do servidor.</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleRemoveInvalidEmails}
+                            disabled={actionLoading}
+                            className="flex items-center gap-2 px-4 py-2 bg-destructive text-white rounded-xl hover:bg-destructive/90 transition-colors text-sm font-semibold disabled:opacity-50"
+                        >
+                            {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                            Remover todos da campanha
+                        </button>
+                    </div>
+                    <div className="max-h-60 overflow-y-auto">
+                        <table className="w-full text-left text-sm">
+                            <tbody className="divide-y divide-destructive/10">
+                                {invalidEmails.map((ie) => (
+                                    <tr key={ie.id} className="hover:bg-destructive/10 transition-colors">
+                                        <td className="px-6 py-3">
+                                            <div className="font-medium text-destructive">{ie.email}</div>
+                                            <div className="text-[10px] text-destructive/70">{ie.site?.url}</div>
+                                        </td>
+                                        <td className="px-6 py-3">
+                                            <span className="text-[10px] font-bold uppercase tracking-tight bg-destructive/10 px-2 py-0.5 rounded text-destructive border border-destructive/20">
+                                                {ie.tipo_erro.replace('_', ' ')}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-3 text-destructive/80 text-xs italic">
+                                            {ie.motivo || 'Sem detalhes do servidor'}
+                                        </td>
+                                        <td className="px-6 py-3 text-right text-destructive/60 tabular-nums text-[10px]">
+                                            {new Date(ie.data_deteccao).toLocaleDateString()}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
 
             {/* Listagem de Logs */}
             <div className="rounded-2xl glass border border-border overflow-hidden">

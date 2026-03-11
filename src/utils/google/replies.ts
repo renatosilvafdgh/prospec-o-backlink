@@ -1,11 +1,13 @@
 import { google } from 'googleapis';
 import { createClient } from '@/utils/supabase/server';
+import { createAdminClient } from '@/utils/supabase/admin';
 
 export async function checkNewReplies(userId: string) {
-    const supabase = await createClient();
+    const supabase = createAdminClient(); // Usar admin para garantir escrita em tabelas globais
     const result = {
         messagesChecked: 0,
         matchesFound: 0,
+        bouncesDetected: 0,
         emailsSeen: [] as string[],
         registeredEmails: [] as string[]
     };
@@ -41,7 +43,6 @@ export async function checkNewReplies(userId: string) {
     const gmail = google.gmail({ version: 'v1', auth });
 
     // 2. Buscar mensagens recentes
-    // 'newer_than:2d' é mais confiável que 'after:TIMESTAMP' em alguns casos
     const response = await gmail.users.messages.list({
         userId: 'me',
         q: `newer_than:2d`,
@@ -59,65 +60,150 @@ export async function checkNewReplies(userId: string) {
             });
 
             const headers = detail.data.payload?.headers;
-            const fromHeader = headers?.find(h => h.name?.toLowerCase() === 'from')?.value;
+            const fromHeader = headers?.find(h => h.name?.toLowerCase() === 'from')?.value || '';
             const subjectHeader = headers?.find(h => h.name?.toLowerCase() === 'subject')?.value || '(Sem Assunto)';
             const labels = detail.data.labelIds?.join(',') || 'NONE';
 
-            // Extração robusta do e-mail
-            const emailMatch = fromHeader?.match(/<(.+?)>|(\S+@\S+)/);
+            // Extração robusta do e-mail do remetente
+            const emailMatch = fromHeader.match(/<(.+?)>|(\S+@\S+)/);
             const senderEmail = (emailMatch?.[1] || emailMatch?.[2] || fromHeader || '').toLowerCase().trim();
 
-            if (senderEmail) {
-                // IGNORAR SE FOR EU MESMO ENVIANDO
-                if (senderEmail === tokens.google_email.toLowerCase().trim()) {
-                    continue;
-                }
-
-                const info = `${senderEmail} | Label: ${labels} | Subj: ${subjectHeader.substring(0, 20)}...`;
-                if (!result.emailsSeen.includes(info)) {
-                    result.emailsSeen.push(info);
-                }
+            if (!senderEmail || senderEmail === tokens.google_email.toLowerCase().trim()) {
+                continue;
             }
 
-            if (senderEmail) {
-                // 3. Verificar se esse e-mail pertence a um site prospectado
-                let { data: site } = await supabase
-                    .from('sites')
-                    .select('id, url, email, thread_id')
-                    .ilike('email', senderEmail)
-                    .eq('user_id', userId)
-                    .maybeSingle();
+            const info = `${senderEmail} | Label: ${labels} | Subj: ${subjectHeader.substring(0, 20)}...`;
+            if (!result.emailsSeen.includes(info)) {
+                result.emailsSeen.push(info);
+            }
 
-                // 3.1 Se não achou por e-mail, tentar por thread_id (respostas de e-mails alternativos)
-                if (!site) {
-                    const { data: siteByThread } = await supabase
+            // --- LÓGICA DE DETECÇÃO DE BOUNCE ---
+            const isBounceSender = [
+                'mailer-daemon',
+                'postmaster',
+                'delivery failure',
+                'undeliverable'
+            ].some(term => senderEmail.includes(term) || fromHeader.toLowerCase().includes(term));
+
+            const isBounceSubject = [
+                'delivery failure',
+                'undeliverable',
+                'returned to sender',
+                'delivery status notification',
+                'failure notice',
+                'non distribué'
+            ].some(term => subjectHeader.toLowerCase().includes(term));
+
+            // Se for um bounce, precisamos encontrar qual e-mail falhou (está no corpo da mensagem)
+            if (isBounceSender || isBounceSubject) {
+                console.log(`⚠️ Possível bounce detectado: ${subjectHeader} (De: ${senderEmail})`);
+                
+                // Buscar e-mail do destinatário original no corpo ou headers (X-Failed-Recipients)
+                const failedRecipientHeader = headers?.find(h => h.name?.toLowerCase() === 'x-failed-recipients')?.value;
+                let targetEmail = failedRecipientHeader?.toLowerCase().trim();
+
+                if (!targetEmail) {
+                    // Tentar encontrar e-mail no corpo da mensagem (snippet ou payload)
+                    const body = detail.data.snippet || '';
+                    const bodyMatch = body.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+                    targetEmail = bodyMatch?.[0]?.toLowerCase().trim();
+                }
+
+                if (targetEmail) {
+                    // Verificar se o e-mail alvo pertence a um site deste usuário
+                    const { data: site } = await supabase
                         .from('sites')
-                        .select('id, url, email, thread_id')
-                        .eq('thread_id', detail.data.threadId)
+                        .select('id, campanha_id, url')
+                        .eq('email', targetEmail)
                         .eq('user_id', userId)
                         .maybeSingle();
 
-                    if (siteByThread) {
-                        site = siteByThread;
-                        console.log(`🔗 Resposta por ThreadID vinculada: ${site.url} (De: ${senderEmail})`);
+                    if (site) {
+                        console.log(`🚫 Bounce confirmado para: ${targetEmail} (Site: ${site.url})`);
+                        result.bouncesDetected++;
+
+                        // 1. Registrar na tabela invalid_emails
+                        await supabase.from('invalid_emails').insert({
+                            user_id: userId,
+                            campanha_id: site.campanha_id,
+                            site_id: site.id,
+                            email: targetEmail,
+                            tipo_erro: isBounceSubject ? 'hard_bounce' : 'server_error',
+                            motivo: subjectHeader
+                        });
+
+                        // 2. Adicionar à global_blocklist
+                        await supabase.from('global_blocklist').upsert({
+                            user_id: userId,
+                            email: targetEmail,
+                            motivo: `Bounce: ${subjectHeader}`
+                        });
+
+                        // 3. Atualizar status do site
+                        await supabase.from('sites').update({
+                            status_contato: 'invalid',
+                            ultimo_contato: new Date().toISOString()
+                        }).eq('id', site.id);
+
+                        // 4. Marcar log como falha (se houver log pendente/sucesso recente)
+                        // Não removemos o sucesso, mas marcamos que deu ruim depois
+                        await supabase.from('email_logs')
+                            .update({ status_envio: 'bounce' })
+                            .eq('site_id', site.id)
+                            .eq('status_envio', 'sucesso')
+                            .order('data_envio', { ascending: false })
+                            .limit(1);
+
+                        // 5. MOVER MENSAGEM PARA A LIXEIRA (Limpeza automática)
+                        await gmail.users.messages.trash({
+                            userId: 'me',
+                            id: msg.id!
+                        });
+                        console.log(`🗑️ Mensagem de bounce ${msg.id} movida para a lixeira.`);
+
+                        continue; // Importante: Bounces não são contados como "Reply"
                     }
                 }
+            }
 
-                if (site) {
-                    console.log(`✅ Resposta detectada: ${site.url} (${senderEmail})`);
-                    result.matchesFound++;
+            // --- LÓGICA DE RESPOSTA NORMAL ---
+            // 3. Verificar se esse e-mail pertence a um site prospectado
+            let { data: site } = await supabase
+                .from('sites')
+                .select('id, url, email, thread_id')
+                .ilike('email', senderEmail)
+                .eq('user_id', userId)
+                .maybeSingle();
 
-                    // Atualizar site APENAS se fomos nós que recebemos uma mensagem
-                    await supabase.from('sites').update({
-                        status_contato: 'respondeu',
-                        thread_id: detail.data.threadId,
-                        ultimo_contato: new Date().toISOString()
-                    }).eq('id', site.id);
+            // 3.1 Se não achou por e-mail, tentar por thread_id (respostas de e-mails alternativos)
+            if (!site) {
+                const { data: siteByThread } = await supabase
+                    .from('sites')
+                    .select('id, url, email, thread_id')
+                    .eq('thread_id', detail.data.threadId)
+                    .eq('user_id', userId)
+                    .maybeSingle();
 
-                    await supabase.from('email_logs').update({
-                        respondeu: true,
-                    }).eq('site_id', site.id).eq('respondeu', false);
+                if (siteByThread) {
+                    site = siteByThread;
+                    console.log(`🔗 Resposta por ThreadID vinculada: ${site.url} (De: ${senderEmail})`);
                 }
+            }
+
+            if (site) {
+                console.log(`✅ Resposta detectada: ${site.url} (${senderEmail})`);
+                result.matchesFound++;
+
+                // Atualizar site APENAS se fomos nós que recebemos uma mensagem
+                await supabase.from('sites').update({
+                    status_contato: 'respondeu',
+                    thread_id: detail.data.threadId,
+                    ultimo_contato: new Date().toISOString()
+                }).eq('id', site.id);
+
+                await supabase.from('email_logs').update({
+                    respondeu: true,
+                }).eq('site_id', site.id).eq('respondeu', false);
             }
         } catch (msgError) {
             console.error(`Erro ao processar mensagem individual:`, msgError);

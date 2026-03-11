@@ -133,6 +133,14 @@ export async function GET(request: Request) {
                 }
             }
 
+            // 6.7 Buscar blocklist global para carregar em memória (otimização para o lote)
+            const { data: blocklist } = await supabase
+                .from('global_blocklist')
+                .select('email')
+                .eq('user_id', campanha.user_id);
+            
+            const blockedEmails = new Set((blocklist || []).map(b => b.email.toLowerCase().trim()));
+
             // 7. Processar múltiplos sites por execução (Lote)
             // Limitamos a um máximo de 10 por execução para evitar timeout 503 da Hostinger
             const maxLote = 10;
@@ -186,6 +194,24 @@ export async function GET(request: Request) {
 
                     if (!site.email) {
                         await supabase.from('email_logs').insert({ user_id: campanha.user_id, campanha_id: campanha.id, site_id: site.id, status_envio: 'debug_sem_email', tipo: 'primeiro_contato' });
+                        continue;
+                    }
+
+                    // --- VERIFICAÇÃO DE BLOCKLIST GLOBAL ---
+                    if (blockedEmails.has(site.email.toLowerCase().trim())) {
+                        console.log(`🚫 Site ${site.url} ignorado: e-mail na blocklist global.`);
+                        await supabase.from('sites').update({
+                            status_contato: 'invalid',
+                            ultimo_contato: new Date().toISOString()
+                        }).eq('id', site.id);
+                        
+                        await supabase.from('email_logs').insert({ 
+                            user_id: campanha.user_id, 
+                            campanha_id: campanha.id, 
+                            site_id: site.id, 
+                            status_envio: 'ignorado_blocklist', 
+                            tipo: site.isFollowup ? 'followup' : 'primeiro_contato' 
+                        });
                         continue;
                     }
 
