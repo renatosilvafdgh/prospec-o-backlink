@@ -15,7 +15,11 @@ import {
     Mail,
     Send,
     X,
-    RefreshCw
+    RefreshCw,
+    Filter,
+    Tag,
+    Star,
+    CheckCircle
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
@@ -35,6 +39,8 @@ export default function InboxPage() {
     const [isSending, setIsSending] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const [mounted, setMounted] = useState(false);
+    const [readFilter, setReadFilter] = useState<'todos' | 'lidos' | 'nao_lidos'>('nao_lidos');
+    const [classFilter, setClassFilter] = useState<string>('todos');
     const supabase = createClient();
 
     useEffect(() => { setMounted(true); }, []);
@@ -46,12 +52,47 @@ export default function InboxPage() {
     useEffect(() => {
         if (replyingTo) {
             fetchThreadsList(replyingTo.email);
+            // Marcar como lido se ainda não estiver
+            if (!replyingTo.lido) {
+                markAsRead(replyingTo.id);
+            }
         } else {
             setAvailableThreads([]);
             setSelectedThreadId(null);
             setThreadMessages([]);
         }
     }, [replyingTo]);
+
+    async function markAsRead(siteId: string) {
+        try {
+            await fetch('/api/inbox/update-site', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId, lido: true })
+            });
+            // Atualizar lista local
+            setResponses(prev => prev.map(r => r.id === siteId ? { ...r, lido: true } : r));
+        } catch (error) {
+            console.error('Erro ao marcar como lido:', error);
+        }
+    }
+
+    async function updateClassification(siteId: string, classification: string | null) {
+        try {
+            await fetch('/api/inbox/update-site', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId, classificacao_lead: classification })
+            });
+            // Atualizar lista local e estado atual
+            setResponses(prev => prev.map(r => r.id === siteId ? { ...r, classificacao_lead: classification } : r));
+            if (replyingTo?.id === siteId) {
+                setReplyingTo({ ...replyingTo, classificacao_lead: classification });
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar classificação:', error);
+        }
+    }
 
     useEffect(() => {
         if (selectedThreadId) {
@@ -202,10 +243,24 @@ export default function InboxPage() {
         }
     }
 
-    const filteredResponses = responses.filter(r =>
-        r.url.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (r.email && r.email.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const filteredResponses = responses.filter(r => {
+        const matchesSearch = r.url.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (r.email && r.email.toLowerCase().includes(searchTerm.toLowerCase()));
+        
+        const matchesRead = readFilter === 'todos' ? true : 
+                          readFilter === 'lidos' ? r.lido === true : r.lido === false;
+        
+        const matchesClass = classFilter === 'todos' ? true : r.classificacao_lead === classFilter;
+
+        return matchesSearch && matchesRead && matchesClass;
+    });
+
+    const classificationOptions = [
+        { id: 'oportunidade', label: 'Chance de Parceria', color: 'bg-emerald-50 text-emerald-600 border-emerald-100', icon: <Star className="w-4 h-4" /> },
+        { id: 'aguardando', label: 'Aguardando Retorno', color: 'bg-amber-50 text-amber-600 border-amber-100', icon: <Clock className="w-4 h-4" /> },
+        { id: 'descartado', label: 'Não Serve', color: 'bg-rose-50 text-rose-600 border-rose-100', icon: <X className="w-4 h-4" /> },
+        { id: 'parceria_fechada', label: 'Parceria Fechada', color: 'bg-indigo-50 text-indigo-600 border-indigo-100', icon: <CheckCircle className="w-4 h-4" /> },
+    ];
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -230,15 +285,52 @@ export default function InboxPage() {
                 </div>
             </div>
 
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                    type="text"
-                    placeholder="Filtrar por domínio ou e-mail..."
-                    className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white border border-slate-200 focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 outline-none transition-all shadow-sm text-slate-900"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
+            <div className="flex flex-col md:flex-row gap-4 items-center mb-2">
+                <div className="flex bg-white p-1 rounded-2xl border border-slate-200 shadow-sm w-full md:w-auto">
+                    <button
+                        onClick={() => setReadFilter('nao_lidos')}
+                        className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-sm font-bold transition-all ${readFilter === 'nao_lidos' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-500 hover:bg-slate-50'}`}
+                    >
+                        Não Lidos
+                    </button>
+                    <button
+                        onClick={() => setReadFilter('lidos')}
+                        className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-sm font-bold transition-all ${readFilter === 'lidos' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-500 hover:bg-slate-50'}`}
+                    >
+                        Lidos
+                    </button>
+                    <button
+                        onClick={() => setReadFilter('todos')}
+                        className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-sm font-bold transition-all ${readFilter === 'todos' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-500 hover:bg-slate-50'}`}
+                    >
+                        Todos
+                    </button>
+                </div>
+
+                <div className="flex-1 w-full relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                        type="text"
+                        placeholder="Filtrar por domínio ou e-mail..."
+                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white border border-slate-200 focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 outline-none transition-all shadow-sm text-slate-900"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+
+                <div className="w-full md:w-48 relative">
+                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <select
+                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white border border-slate-200 focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 outline-none transition-all shadow-sm text-slate-900 appearance-none font-medium text-sm"
+                        value={classFilter}
+                        onChange={(e) => setClassFilter(e.target.value)}
+                    >
+                        <option value="todos">Todas Categorias</option>
+                        {classificationOptions.map(opt => (
+                            <option key={opt.id} value={opt.id}>{opt.label}</option>
+                        ))}
+                    </select>
+                </div>
             </div>
 
             {loading ? (
@@ -263,8 +355,16 @@ export default function InboxPage() {
                     {filteredResponses.map((site) => (
                         <div key={site.id}
                             onClick={() => setReplyingTo(site)}
-                            className="group p-6 rounded-3xl bg-white border border-slate-100 hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-500/5 transition-all flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden cursor-pointer shadow-sm">
-                            <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500" />
+                            className={`group p-6 rounded-3xl bg-white border transition-all flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden cursor-pointer shadow-sm ${!site.lido ? 'border-indigo-200 ring-2 ring-indigo-50' : 'border-slate-100 hover:border-indigo-300'}`}>
+                            
+                            <div className={`absolute top-0 left-0 w-1.5 h-full ${!site.lido ? 'bg-indigo-600' : 'bg-emerald-500'}`} />
+                            
+                            {!site.lido && (
+                                <div className="absolute top-4 right-4 flex items-center gap-1 text-[10px] font-black uppercase text-indigo-600 animate-pulse bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-100">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
+                                    Novo
+                                </div>
+                            )}
 
                             <div className="flex items-start gap-4">
                                 <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center shrink-0 border border-emerald-100">
@@ -281,6 +381,12 @@ export default function InboxPage() {
                                         <Mail className="w-3.5 h-3.5" />
                                         {site.email}
                                     </p>
+                                    {site.classificacao_lead && (
+                                        <div className={`mt-2 flex items-center gap-1.5 text-[10px] font-bold uppercase px-2 py-1 rounded-lg border w-fit ${classificationOptions.find(o => o.id === site.classificacao_lead)?.color}`}>
+                                            {classificationOptions.find(o => o.id === site.classificacao_lead)?.icon}
+                                            {classificationOptions.find(o => o.id === site.classificacao_lead)?.label}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -342,7 +448,23 @@ export default function InboxPage() {
                                     </div>
                                     <div>
                                         <h3 className="font-extrabold text-xl text-slate-900 tracking-tight">{replyingTo.url}</h3>
-                                        <p className="text-sm font-medium text-slate-500">{replyingTo.email}</p>
+                                        <div className="flex items-center gap-3">
+                                            <p className="text-sm font-medium text-slate-500">{replyingTo.email}</p>
+                                            <div className="h-4 w-px bg-slate-200" />
+                                            <div className="flex items-center gap-2">
+                                                <Tag className="w-3.5 h-3.5 text-slate-400" />
+                                                <select
+                                                    className="text-sm font-bold text-slate-600 bg-transparent border-none p-0 outline-none cursor-pointer focus:text-indigo-600 hover:text-indigo-600 transition-colors"
+                                                    value={replyingTo.classificacao_lead || ''}
+                                                    onChange={(e) => updateClassification(replyingTo.id, e.target.value || null)}
+                                                >
+                                                    <option value="">Sem Classificação</option>
+                                                    {classificationOptions.map(opt => (
+                                                        <option key={opt.id} value={opt.id}>{opt.label}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
