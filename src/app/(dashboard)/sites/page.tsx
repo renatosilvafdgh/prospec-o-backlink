@@ -113,6 +113,9 @@ export default function SitesPage() {
             // Filtro de status
             if (statusFilter !== 'todos') {
                 countQuery = countQuery.eq('status_contato', statusFilter);
+            } else {
+                // Por padrão, esconde inválidos/bounces
+                countQuery = countQuery.neq('status_contato', 'invalid');
             }
 
             const { count: total, error: countErr } = await countQuery;
@@ -128,6 +131,9 @@ export default function SitesPage() {
             }
             if (statusFilter !== 'todos') {
                 dataQuery = dataQuery.eq('status_contato', statusFilter);
+            } else {
+                // Por padrão, esconde inválidos/bounces
+                dataQuery = dataQuery.neq('status_contato', 'invalid');
             }
 
             // Ordenação Determinística
@@ -360,12 +366,13 @@ export default function SitesPage() {
                             setCurrentPage(0);
                         }}
                     >
-                        <option value="todos">Todos os Status</option>
+                        <option value="todos">Todos (Válidos)</option>
                         <option value="lead">Não contatado</option>
                         <option value="contatado">Contatado</option>
                         <option value="respondeu">Respondeu</option>
                         <option value="fechado">Fechado</option>
                         <option value="recusado">Recusado</option>
+                        <option value="invalid">E-mails Inválidos</option>
                     </select>
                 </div>
 
@@ -488,9 +495,11 @@ export default function SitesPage() {
                                                 site.status_contato === 'contatado' ? 'bg-amber-500/10 text-amber-500' :
                                                     site.status_contato === 'fechado' ? 'bg-indigo-500/10 text-indigo-500' :
                                                         site.status_contato === 'recusado' ? 'bg-rose-500/10 text-rose-500' :
-                                                            'bg-blue-500/10 text-blue-500'
+                                                            site.status_contato === 'invalid' ? 'bg-slate-500/10 text-slate-500 border border-slate-200' :
+                                                                'bg-blue-500/10 text-blue-500'
                                                 }`}>
-                                                {site.status_contato === 'lead' || !site.status_contato ? 'Não contatado' : site.status_contato}
+                                                {site.status_contato === 'lead' || !site.status_contato ? 'Não contatado' :
+                                                    site.status_contato === 'invalid' ? 'E-mail Inválido' : site.status_contato}
                                             </span>
                                         </td>
                                     </tr>
