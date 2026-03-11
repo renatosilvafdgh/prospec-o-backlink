@@ -19,7 +19,8 @@ import {
     Filter,
     Tag,
     Star,
-    CheckCircle
+    CheckCircle,
+    Trash2
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
@@ -532,12 +533,12 @@ export default function InboxPage() {
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 moveToTrash(replyingTo.id);
-                                                setReplyingTo(null);
+                                                setReplyingTo(null); // Fecha o modal
                                             }}
                                             className="p-3 hover:bg-white hover:shadow-md rounded-2xl transition-all text-slate-400 hover:text-rose-500 border border-transparent hover:border-slate-100 mr-2"
                                             title="Mover para Lixeira"
                                         >
-                                            <X className="w-5 h-5" />
+                                            <Trash2 className="w-5 h-5" />
                                         </button>
                                     )}
                                     {selectedThreadId && (
