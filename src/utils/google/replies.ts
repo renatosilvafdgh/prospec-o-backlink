@@ -72,10 +72,7 @@ export async function checkNewReplies(userId: string) {
                 continue;
             }
 
-            const info = `${senderEmail} | Label: ${labels} | Subj: ${subjectHeader.substring(0, 20)}...`;
-            if (!result.emailsSeen.includes(info)) {
-                result.emailsSeen.push(info);
-            }
+            // O info será adicionado apenas se não for bounce (ver abaixo)
 
             // --- LÓGICA DE DETECÇÃO DE BOUNCE ---
             const isBounceSender = [
@@ -110,7 +107,7 @@ export async function checkNewReplies(userId: string) {
                 }
 
                 if (targetEmail) {
-                    // Verificar se o e-mail alvo pertence a um site deste usuário
+                    // ... (lógica de site existente) ...
                     const { data: site } = await supabase
                         .from('sites')
                         .select('id, campanha_id, url')
@@ -122,7 +119,6 @@ export async function checkNewReplies(userId: string) {
                         console.log(`🚫 Bounce confirmado para: ${targetEmail} (Site: ${site.url})`);
                         result.bouncesDetected++;
 
-                        // 1. Registrar na tabela invalid_emails
                         await supabase.from('invalid_emails').insert({
                             user_id: userId,
                             campanha_id: site.campanha_id,
@@ -132,41 +128,42 @@ export async function checkNewReplies(userId: string) {
                             motivo: subjectHeader
                         });
 
-                        // 2. Adicionar à global_blocklist
                         await supabase.from('global_blocklist').upsert({
                             user_id: userId,
                             email: targetEmail,
                             motivo: `Bounce: ${subjectHeader}`
                         });
 
-                        // 3. Atualizar status do site
                         await supabase.from('sites').update({
                             status_contato: 'invalid',
                             ultimo_contato: new Date().toISOString()
                         }).eq('id', site.id);
 
-                        // 4. Marcar log como falha (se houver log pendente/sucesso recente)
-                        // Não removemos o sucesso, mas marcamos que deu ruim depois
                         await supabase.from('email_logs')
                             .update({ status_envio: 'bounce' })
                             .eq('site_id', site.id)
                             .eq('status_envio', 'sucesso')
                             .order('data_envio', { ascending: false })
                             .limit(1);
-
-                        // 5. MOVER MENSAGEM PARA A LIXEIRA (Limpeza automática)
-                        await gmail.users.messages.trash({
-                            userId: 'me',
-                            id: msg.id!
-                        });
-                        console.log(`🗑️ Mensagem de bounce ${msg.id} movida para a lixeira.`);
-
-                        continue; // Importante: Bounces não são contados como "Reply"
                     }
                 }
+
+                // MOVER MENSAGEM PARA A LIXEIRA (Limpeza automática para qualquer bounce detectado)
+                await gmail.users.messages.trash({
+                    userId: 'me',
+                    id: msg.id!
+                });
+                console.log(`🗑️ Mensagem de bounce ${msg.id} movida para a lixeira.`);
+
+                continue; // Importante: Bounces não são contados como "Reply" nem como "Seen" no resumo normal
             }
 
             // --- LÓGICA DE RESPOSTA NORMAL ---
+            // Adicionar ao resumo de "vistos recentemente" apenas se não for bounce
+            const info = `${senderEmail} | Label: ${labels} | Subj: ${subjectHeader.substring(0, 20)}...`;
+            if (!result.emailsSeen.includes(info)) {
+                result.emailsSeen.push(info);
+            }
             // 3. Verificar se esse e-mail pertence a um site prospectado
             let { data: site } = await supabase
                 .from('sites')
