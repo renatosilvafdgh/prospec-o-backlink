@@ -272,9 +272,11 @@ export default function InboxPage() {
         }
     }
 
-    const filteredResponses = responses.filter(r => {
-        const matchesSearch = r.url.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (r.email && r.email.toLowerCase().includes(searchTerm.toLowerCase()));
+    const filteredResponses = (responses || []).filter(r => {
+        const url = r.url || '';
+        const email = r.email || '';
+        const matchesSearch = url.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            email.toLowerCase().includes(searchTerm.toLowerCase());
         
         // Lógica de Lixeira: Itens com status 'invalid' ou classificação 'descartado'
         const isTrash = r.status_contato === 'invalid' || r.classificacao_lead === 'descartado';
@@ -452,10 +454,16 @@ export default function InboxPage() {
                                         {site.email}
                                     </p>
                                     {site.classificacao_lead && (
-                                        <div className={`mt-2 flex items-center gap-1.5 text-[10px] font-bold uppercase px-2 py-1 rounded-lg border w-fit ${classificationOptions.find(o => o.id === site.classificacao_lead)?.color}`}>
-                                            {classificationOptions.find(o => o.id === site.classificacao_lead)?.icon}
-                                            {classificationOptions.find(o => o.id === site.classificacao_lead)?.label}
-                                        </div>
+                                        (() => {
+                                            const opt = classificationOptions.find(o => o.id === site.classificacao_lead);
+                                            if (!opt) return null;
+                                            return (
+                                                <div className={`mt-2 flex items-center gap-1.5 text-[10px] font-bold uppercase px-2 py-1 rounded-lg border w-fit ${opt.color}`}>
+                                                    {opt.icon}
+                                                    {opt.label}
+                                                </div>
+                                            );
+                                        })()
                                     )}
                                 </div>
                             </div>
