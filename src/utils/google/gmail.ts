@@ -184,10 +184,20 @@ export function cleanMessageBody(html: string | undefined): string {
     cleanHtml = cleanHtml.replace(/<xml[\s\S]*?<\/xml>/gi, '');
     cleanHtml = cleanHtml.replace(/<!--[\s\S]*?-->/g, '');
 
-    // 4. --- LÓGICA AGRESSIVA: Remover TODOS os atributos style ---
-    // Atributos de estilo são a maior causa de vácuos e espaçamentos indesejados
+    // 4. --- LÓGICA AGRESSIVA: Remover atributos style EXCETO os úteis para imagens ---
+    // Removemos estilos de quase tudo, mas para <img> garantimos que não sumam e não estourem
+    cleanHtml = cleanHtml.replace(/<img([^>]*?)\s+style="[^"]*?"/gi, '<img$1 style="max-width: 100%; height: auto; display: block; margin: 10px 0;"');
+    
+    // Agora removemos o resto dos estilos (que não sejam em img já tratados acima)
+    // Usamos um truque: removemos style de tags que NÃO sejam img
+    cleanHtml = cleanHtml.replace(/<(?!img)\w+([^>]*?)\s+style="[^"]*?"/gi, '<$0'); // Isso é complexo pacas em regex puras, vamos simplificar.
+    
+    // Versão mais segura: remover style de tudo, mas reinjetar o básico em IMG depois
     cleanHtml = cleanHtml.replace(/\s+style="[^"]*?"/gi, '');
     cleanHtml = cleanHtml.replace(/\s+style='[^']*?'/gi, '');
+    
+    // Reinjetar estilo básico em imagens para garantir visibilidade e responsividade
+    cleanHtml = cleanHtml.replace(/<img /gi, '<img style="max-width: 100%; height: auto; border-radius: 8px; margin: 12px 0; display: block;" ');
 
     // 5. Limpeza de espaços e tags vazias no início/fim
     const trimHtml = (str: string) => {
@@ -214,4 +224,49 @@ export function cleanMessageBody(html: string | undefined): string {
     cleanHtml = cleanHtml.replace(/\s{2,}/g, ' ');
 
     return cleanHtml.trim();
+}
+
+/**
+ * Resolve referências cid: no corpo do e-mail, substituindo-as por Data URIs (Base64).
+ */
+export function resolveCids(html: string, payload: any): string {
+    if (!html || !payload) return html;
+
+    const cidMap: Record<string, { data: string, mimeType: string }> = {};
+
+    // Função interna para varrer as partes da mensagem recursivamente
+    function scanParts(parts: any[]) {
+        for (const part of parts) {
+            const headers = part.headers || [];
+            const contentIdHeader = headers.find((h: any) => h.name?.toLowerCase() === 'content-id');
+            
+            if (contentIdHeader && part.body?.data) {
+                // O Content-ID costuma vir entre < >
+                const cid = contentIdHeader.value.replace(/[<>]/g, '');
+                cidMap[cid] = {
+                    data: part.body.data.replace(/-/g, '+').replace(/_/g, '/'), // Base64url to Base64
+                    mimeType: part.mimeType || 'image/png'
+                };
+            }
+
+            if (part.parts) {
+                scanParts(part.parts);
+            }
+        }
+    }
+
+    if (payload.parts) {
+        scanParts(payload.parts);
+    }
+
+    // Substituir src="cid:..." por Data URI
+    let resolvedHtml = html;
+    for (const [cid, info] of Object.entries(cidMap)) {
+        const dataUri = `data:${info.mimeType};base64,${info.data}`;
+        // Regex para encontrar src="cid:CID" ou src='cid:CID'
+        const cidRegex = new RegExp(`src=["']cid:${cid}["']`, 'gi');
+        resolvedHtml = resolvedHtml.replace(cidRegex, `src="${dataUri}"`);
+    }
+
+    return resolvedHtml;
 }
