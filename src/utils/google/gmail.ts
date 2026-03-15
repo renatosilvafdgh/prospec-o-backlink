@@ -173,15 +173,38 @@ export function cleanMessageBody(html: string | undefined): string {
     }
 
     // 2. O cabeçalho de texto "Em ..., escreveu:"
-    // Exigimos que comece após uma quebra de linha ou no início do texto
-    // E limitamos o tamanho para 250 caracteres para não comer o corpo inteiro por engano
     const wroteRegex = /(?:<br>|\n|^)\s*(?:Em|On)\s+[\s\S]{5,250}?(?:escreveu|wrote):/gi;
-    
-    // Pegar apenas o primeiro match se houver e cortar a partir dali
     const match = wroteRegex.exec(cleanHtml);
     if (match) {
         cleanHtml = cleanHtml.substring(0, match.index);
     }
+
+    // 3. Remover lixo estrutural e de estilo
+    cleanHtml = cleanHtml.replace(/<style[\s\S]*?<\/style>/gi, '');
+    cleanHtml = cleanHtml.replace(/<xml[\s\S]*?<\/xml>/gi, '');
+    cleanHtml = cleanHtml.replace(/<!--[\s\S]*?-->/g, '');
+
+    // 4. Limpeza agressiva de espaços e tags vazias no início/fim
+    const trimHtml = (str: string) => {
+        let prev;
+        let s = str.trim();
+        do {
+            prev = s;
+            // Remover <br>, &nbsp;, \n e espaços do início e fim
+            s = s.replace(/^(?:<br\s*\/?>|\n|\s|&nbsp;)+/gi, '');
+            s = s.replace(/(?:<br\s*\/?>|\n|\s|&nbsp;)+$/gi, '');
+        } while (s !== prev);
+        return s;
+    };
+
+    cleanHtml = trimHtml(cleanHtml);
+
+    // 5. Normalizar quebras de linha múltiplas (máximo 2 <br>)
+    cleanHtml = cleanHtml.replace(/(?:<br\s*\/?>\s*){3,}/gi, '<br><br>');
+
+    // 6. Remover quebras de linha literais (\n) que atrapalham o whitespace-pre-wrap
+    // Como estamos renderizando HTML, as quebras devem ser apenas tags <br> ou blocos
+    cleanHtml = cleanHtml.replace(/\n\r?/g, ' ');
 
     return cleanHtml.trim();
 }
