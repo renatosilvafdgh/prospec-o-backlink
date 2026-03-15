@@ -49,6 +49,7 @@ export default function InboxPage() {
     const [mainTab, setMainTab] = useState<'inbox' | 'lixeira'>('inbox');
     const [readFilter, setReadFilter] = useState<'todos' | 'lidos' | 'nao_lidos'>('nao_lidos');
     const [classFilter, setClassFilter] = useState<string>('todos');
+    const [isReplying, setIsReplying] = useState(false);
     const supabase = createClient();
 
     useEffect(() => { setMounted(true); }, []);
@@ -606,7 +607,7 @@ export default function InboxPage() {
                             ) : (
                                 <>
                                     {/* Corpo da Conversa (Chat) - Fundo Light */}
-                                    <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-slate-50/30 min-h-0">
+                                    <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 bg-slate-50/30 min-h-0">
                                         {loadingThread ? (
                                             <div className="flex flex-col items-center justify-center py-16 gap-3">
                                                 <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
@@ -617,61 +618,87 @@ export default function InboxPage() {
                                                 Nenhuma mensagem encontrada nesta conversa.
                                             </div>
                                         ) : (
-                                            threadMessages.map((msg, idx) => (
-                                                <div key={msg.id || idx} className={`flex flex-col ${msg.isMe ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-                                                    <div className={`max-w-[85%] rounded-[1.5rem] p-5 shadow-md ${msg.isMe
-                                                        ? 'bg-indigo-600 !text-white border-indigo-700 rounded-tr-none shadow-indigo-200'
-                                                        : 'bg-white text-slate-800 border-slate-200 border rounded-tl-none shadow-slate-100'
-                                                        }`}>
-                                                        {msg.subject && (
-                                                            <h4 className={`text-[11px] font-black uppercase tracking-widest mb-2 pb-2 border-b ${msg.isMe ? 'border-white/20 text-indigo-100' : 'border-slate-100 text-slate-400'}`}>
-                                                                {msg.subject}
-                                                            </h4>
-                                                        )}
-                                                        <div
-                                                            className={`text-[15px] leading-relaxed whitespace-pre-wrap prose prose-sm max-w-none ${msg.isMe ? 'prose-invert !text-white' : 'prose-slate text-slate-800'}`}
-                                                            dangerouslySetInnerHTML={{ __html: msg.body }}
-                                                        />
+                                            <div className="flex flex-col gap-6">
+                                                {threadMessages.map((msg, idx) => (
+                                                    <div key={msg.id || idx} className={`flex flex-col ${msg.isMe ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+                                                        <div className={`max-w-[90%] rounded-[1.5rem] p-4 md:p-5 shadow-sm ${msg.isMe
+                                                            ? 'bg-indigo-600 !text-white border-indigo-700 rounded-tr-none shadow-indigo-200'
+                                                            : 'bg-white text-slate-800 border-slate-200 border rounded-tl-none shadow-slate-100'
+                                                            }`}>
+                                                            {msg.subject && (
+                                                                <h4 className={`text-[10px] md:text-[11px] font-black uppercase tracking-widest mb-2 pb-2 border-b ${msg.isMe ? 'border-white/20 text-indigo-100' : 'border-slate-100 text-slate-400'}`}>
+                                                                    {msg.subject}
+                                                                </h4>
+                                                            )}
+                                                            <div
+                                                                className={`text-sm md:text-[15px] leading-relaxed whitespace-pre-wrap prose prose-sm max-w-none ${msg.isMe ? 'prose-invert !text-white font-medium' : 'prose-slate text-slate-800'}`}
+                                                                dangerouslySetInnerHTML={{ __html: msg.body }}
+                                                            />
+                                                        </div>
+                                                        <span className="text-[9px] md:text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-wider px-2">
+                                                            {msg.isMe ? 'VOCÊ • ' : (msg.from?.split('<')[0] || 'REMETENTE') + ' • '}
+                                                            {new Date(msg.date).toLocaleString([], { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                                                        </span>
                                                     </div>
-                                                    <span className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-wider px-2">
-                                                        {msg.isMe ? 'VOCÊ • ' : (msg.from?.split('<')[0] || 'REMETENTE') + ' • '}
-                                                        {new Date(msg.date).toLocaleString([], { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
-                                                    </span>
-                                                </div>
-                                            ))
+                                                ))}
+                                            </div>
                                         )}
                                     </div>
 
-                                    {/* Área de Resposta - Limpa e Branca com Contraste */}
-                                    <div className="p-8 border-t border-slate-100 bg-white shrink-0">
-                                        <form onSubmit={handleSendReply} className="space-y-4">
-                                            <div className="relative group">
-                                                <textarea
-                                                    required
-                                                    rows={4}
-                                                    placeholder="Digite sua resposta de forma profissional..."
-                                                    className="w-full px-6 py-5 rounded-[1.8rem] bg-slate-50 border-2 border-slate-100 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 focus:bg-white outline-none transition-all resize-none pr-16 text-slate-900 placeholder:text-slate-400 font-medium"
-                                                    value={replyBody}
-                                                    onChange={e => setReplyBody(e.target.value)}
-                                                />
-                                                <button
-                                                    type="submit"
-                                                    disabled={isSending || !replyBody.trim()}
-                                                    className="absolute right-4 bottom-4 w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-xl shadow-indigo-200 hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:scale-100 disabled:shadow-none"
-                                                >
-                                                    {isSending ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6" />}
-                                                </button>
+                                    {/* Área de Resposta Dinâmica */}
+                                    <div className={cn(
+                                        "border-t border-slate-100 bg-white shrink-0 transition-all duration-300",
+                                        isReplying ? "p-6 md:p-8" : "p-4"
+                                    )}>
+                                        {!isReplying ? (
+                                            <div 
+                                                onClick={() => setIsReplying(true)}
+                                                className="flex items-center gap-3 px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 cursor-pointer hover:bg-slate-100 transition-all text-slate-400 group"
+                                            >
+                                                <Send className="w-5 h-5 group-hover:text-indigo-600 transition-colors" />
+                                                <span className="font-bold uppercase text-[11px] tracking-widest">Escrever uma resposta...</span>
                                             </div>
-                                            <div className="flex items-center justify-between text-[11px] text-slate-400 font-bold px-1 uppercase tracking-widest">
-                                                <p className="flex items-center gap-1.5">
-                                                    <Calendar className="w-3.5 h-3.5" />
-                                                    Resposta vinculada à thread selecionada
-                                                </p>
-                                                <p className="text-indigo-400">
-                                                    Backlinks Prospector Premium
-                                                </p>
-                                            </div>
-                                        </form>
+                                        ) : (
+                                            <form onSubmit={handleSendReply} className="space-y-4 animate-in zoom-in-95 duration-200">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <h4 className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">Sua Resposta</h4>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => setIsReplying(false)}
+                                                        className="text-[10px] font-black text-slate-400 hover:text-rose-500 uppercase tracking-widest transition-colors flex items-center gap-1"
+                                                    >
+                                                        <X className="w-3 h-3" /> Fechar
+                                                    </button>
+                                                </div>
+                                                <div className="relative group">
+                                                    <textarea
+                                                        autoFocus
+                                                        required
+                                                        rows={4}
+                                                        placeholder="Digite sua resposta de forma profissional..."
+                                                        className="w-full px-6 py-5 rounded-[1.8rem] bg-slate-50 border-2 border-slate-100 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 focus:bg-white outline-none transition-all resize-none pr-16 text-slate-900 placeholder:text-slate-400 font-medium"
+                                                        value={replyBody}
+                                                        onChange={e => setReplyBody(e.target.value)}
+                                                    />
+                                                    <button
+                                                        type="submit"
+                                                        disabled={isSending || !replyBody.trim()}
+                                                        className="absolute right-4 bottom-4 w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-xl shadow-indigo-200 hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:scale-100 disabled:shadow-none"
+                                                    >
+                                                        {isSending ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6" />}
+                                                    </button>
+                                                </div>
+                                                <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold px-1 uppercase tracking-widest">
+                                                    <p className="flex items-center gap-1.5 line-clamp-1">
+                                                        <Calendar className="w-3.5 h-3.5" />
+                                                        Vinculada à thread
+                                                    </p>
+                                                    <p className="text-indigo-400 whitespace-nowrap">
+                                                        Premium Mode
+                                                    </p>
+                                                </div>
+                                            </form>
+                                        )}
                                     </div>
                                 </>
                             )}
