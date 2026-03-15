@@ -24,10 +24,16 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
+import { toast } from 'sonner';
+
+function cn(...inputs: any[]) {
+    return inputs.filter(Boolean).join(' ');
+}
 
 export default function InboxPage() {
     const [responses, setResponses] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [replyingTo, setReplyingTo] = useState<any | null>(null);
     const [availableThreads, setAvailableThreads] = useState<any[]>([]);
@@ -156,9 +162,21 @@ export default function InboxPage() {
         }
     }
 
-    async function fetchResponses() {
+    // Auto-refresh a cada 30 segundos
+    useEffect(() => {
+        const interval = setInterval(() => {
+            // Apenas atualiza se não estiver com um modal aberto digitando resposta
+            if (!replyingTo) {
+                fetchResponses(false); // fetch sem loading state pesado
+            }
+        }, 30000);
+
+        return () => clearInterval(interval);
+    }, [mainTab, readFilter, replyingTo]);
+
+    async function fetchResponses(showLoading = true) {
         try {
-            setLoading(true);
+            if (showLoading) setLoading(true);
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
@@ -177,36 +195,25 @@ export default function InboxPage() {
         } catch (error) {
             console.error('Erro ao buscar respostas:', error);
         } finally {
-            setLoading(false);
+            if (showLoading) setLoading(false);
         }
     }
 
-    async function syncReplies() {
+    async function handleSync() {
         try {
-            setIsSyncing(true);
-            const res = await fetch('/api/automation/replies');
-            const data = await res.json();
-
+            setIsRefreshing(true);
+            const response = await fetch(`/api/automation/replies`);
+            const data = await response.json();
             if (data.success) {
-                const totalEmails = data.details.reduce((acc: number, d: any) => acc + d.messagesChecked, 0);
-                const emailsSeen = data.details.flatMap((d: any) => d.emailsSeen).join('\n');
-                const matches = data.details.reduce((acc: number, d: any) => acc + d.matchesFound, 0);
-
-                alert(
-                    `📊 Sincronização Concluída:\n\n` +
-                    `✅ Mensagens no Gmail: ${totalEmails}\n` +
-                    `🔗 Novas Respostas: ${matches}\n\n` +
-                    `👀 Vistos recentemente:\n${emailsSeen || 'Nenhum'}`
-                );
-                fetchResponses();
+                toast.success('Caixa de entrada atualizada!');
+                await fetchResponses(); // Usa o loading normal para re-renderizar forte
             } else {
-                alert('Erro ao sincronizar respostas.');
+                toast.error('Erro ao sincronizar', { description: data.error });
             }
-        } catch (e) {
-            console.error(e);
-            alert('Falha na sincronização.');
+        } catch (error) {
+            toast.error('Erro de conexão ao sincronizar');
         } finally {
-            setIsSyncing(false);
+            setIsRefreshing(false);
         }
     }
 
@@ -302,12 +309,12 @@ export default function InboxPage() {
                 </div>
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={syncReplies}
-                        disabled={isSyncing}
-                        className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-all font-bold text-sm border border-indigo-100"
+                        onClick={handleSync}
+                        disabled={isRefreshing}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-indigo-600 hover:bg-slate-50 transition-all font-bold shadow-sm border border-slate-200"
                     >
-                        {isSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                        Sincronizar Mensagens
+                        <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
+                        {isRefreshing ? 'Sincronizando...' : 'Sincronizar Mensagens'}
                     </button>
                     <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 font-bold text-sm">
                         <CheckCircle2 className="w-4 h-4" />
