@@ -184,20 +184,14 @@ export function cleanMessageBody(html: string | undefined): string {
     cleanHtml = cleanHtml.replace(/<xml[\s\S]*?<\/xml>/gi, '');
     cleanHtml = cleanHtml.replace(/<!--[\s\S]*?-->/g, '');
 
-    // 4. --- LÓGICA AGRESSIVA: Remover atributos style EXCETO os úteis para imagens ---
-    // Removemos estilos de quase tudo, mas para <img> garantimos que não sumam e não estourem
-    cleanHtml = cleanHtml.replace(/<img([^>]*?)\s+style="[^"]*?"/gi, '<img$1 style="max-width: 100%; height: auto; display: block; margin: 10px 0;"');
-    
-    // Agora removemos o resto dos estilos (que não sejam em img já tratados acima)
-    // Usamos um truque: removemos style de tags que NÃO sejam img
-    cleanHtml = cleanHtml.replace(/<(?!img)\w+([^>]*?)\s+style="[^"]*?"/gi, '<$0'); // Isso é complexo pacas em regex puras, vamos simplificar.
-    
-    // Versão mais segura: remover style de tudo, mas reinjetar o básico em IMG depois
+    // 4. --- LÓGICA DE ESTILO: Remover estilos globais e tratar imagens ---
+    // Removemos todos os atributos style para evitar vácuos/espaços gigantes
     cleanHtml = cleanHtml.replace(/\s+style="[^"]*?"/gi, '');
     cleanHtml = cleanHtml.replace(/\s+style='[^']*?'/gi, '');
     
     // Reinjetar estilo básico em imagens para garantir visibilidade e responsividade
-    cleanHtml = cleanHtml.replace(/<img /gi, '<img style="max-width: 100%; height: auto; border-radius: 8px; margin: 12px 0; display: block;" ');
+    // Usamos um seletor mais específico para não quebrar a tag img
+    cleanHtml = cleanHtml.replace(/<img(\s|>)/gi, '<img style="max-width: 100%; height: auto; border-radius: 8px; margin: 12px 0; display: block;"$1');
 
     // 5. Limpeza de espaços e tags vazias no início/fim
     const trimHtml = (str: string) => {
@@ -238,11 +232,15 @@ export function resolveCids(html: string, payload: any): string {
     function scanParts(parts: any[]) {
         for (const part of parts) {
             const headers = part.headers || [];
-            const contentIdHeader = headers.find((h: any) => h.name?.toLowerCase() === 'content-id');
+            // Verificar múltiplos cabeçalhos possíveis para ID de anexo/CID
+            const cidHeader = headers.find((h: any) => h.name?.toLowerCase() === 'content-id');
+            const altCidHeader = headers.find((h: any) => h.name?.toLowerCase() === 'x-attachment-id');
             
-            if (contentIdHeader && part.body?.data) {
+            const cidValue = cidHeader?.value || altCidHeader?.value;
+
+            if (cidValue && part.body?.data) {
                 // O Content-ID costuma vir entre < >
-                const cid = contentIdHeader.value.replace(/[<>]/g, '');
+                const cid = cidValue.replace(/[<>]/g, '').trim();
                 cidMap[cid] = {
                     data: part.body.data.replace(/-/g, '+').replace(/_/g, '/'), // Base64url to Base64
                     mimeType: part.mimeType || 'image/png'
@@ -257,6 +255,8 @@ export function resolveCids(html: string, payload: any): string {
 
     if (payload.parts) {
         scanParts(payload.parts);
+    } else if (payload.body?.data) {
+        // Se não tem parts mas tem data, pode ser uma parte única (raro para CID, mas preventivo)
     }
 
     // Substituir src="cid:..." por Data URI
@@ -266,6 +266,8 @@ export function resolveCids(html: string, payload: any): string {
         // Regex para encontrar src="cid:CID" ou src='cid:CID'
         const cidRegex = new RegExp(`src=["']cid:${cid}["']`, 'gi');
         resolvedHtml = resolvedHtml.replace(cidRegex, `src="${dataUri}"`);
+        
+        // Também tentar sem o prefixo src se necessário, mas src é o padrão
     }
 
     return resolvedHtml;
