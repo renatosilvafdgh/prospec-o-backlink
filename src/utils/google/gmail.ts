@@ -226,7 +226,7 @@ export function cleanMessageBody(html: string | undefined): string {
 export function resolveCids(html: string, payload: any): string {
     if (!html || !payload) return html;
 
-    const cidMap: Record<string, { data: string, mimeType: string }> = {};
+    const cidMap: Record<string, string> = {};
 
     // Função interna para varrer as partes da mensagem recursivamente
     function scanParts(parts: any[]) {
@@ -248,10 +248,8 @@ export function resolveCids(html: string, payload: any): string {
                     base64Data += '=';
                 }
 
-                cidMap[cid] = {
-                    data: base64Data,
-                    mimeType: part.mimeType || 'image/png'
-                };
+                const mimeType = part.mimeType || 'image/png';
+                cidMap[cid.toLowerCase()] = `data:${mimeType};base64,${base64Data}`;
             }
 
             if (part.parts) {
@@ -262,22 +260,25 @@ export function resolveCids(html: string, payload: any): string {
 
     if (payload.parts) {
         scanParts(payload.parts);
-    } else if (payload.body?.data) {
-        // Parte única
     }
 
-    // Substituir src="cid:..." por Data URI
-    let resolvedHtml = html;
-    for (const [cid, info] of Object.entries(cidMap)) {
-        const dataUri = `data:${info.mimeType};base64,${info.data}`;
+    // Estratégia de substituição robusta:
+    // Varremos o HTML em busca de padrões cid:... e trocamos pelo que temos no mapa
+    return html.replace(/cid:<?([^"'>\s]+)>?/gi, (match, foundCid) => {
+        // Remover < > se existirem no HTML e normalizar para busca
+        const cleanFoundCid = foundCid.replace(/[<>]/g, '').trim().toLowerCase();
         
-        // ESCAPAR o CID para uso em Regex (IDs costumam ter pontos, arrobas, etc)
-        const escapedCid = cid.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        
-        // Regex mais abrangente para encontrar o src com cid
-        const cidRegex = new RegExp(`src=["']cid:${escapedCid}["']`, 'gi');
-        resolvedHtml = resolvedHtml.replace(cidRegex, `src="${dataUri}"`);
-    }
+        if (cidMap[cleanFoundCid]) {
+            return cidMap[cleanFoundCid];
+        }
 
-    return resolvedHtml;
+        // Tentar busca parcial se houver sufixos como :1 (comum em alguns clientes)
+        for (const [key, dataUri] of Object.entries(cidMap)) {
+            if (cleanFoundCid.startsWith(key) || key.startsWith(cleanFoundCid)) {
+                return dataUri;
+            }
+        }
+
+        return match; // Mantém o original se não encontrar (para depuração via console)
+    });
 }
