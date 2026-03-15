@@ -241,8 +241,15 @@ export function resolveCids(html: string, payload: any): string {
             if (cidValue && part.body?.data) {
                 // O Content-ID costuma vir entre < >
                 const cid = cidValue.replace(/[<>]/g, '').trim();
+                
+                // Normalizar Base64URL para Base64 padrão e adicionar padding se necessário
+                let base64Data = part.body.data.replace(/-/g, '+').replace(/_/g, '/');
+                while (base64Data.length % 4 !== 0) {
+                    base64Data += '=';
+                }
+
                 cidMap[cid] = {
-                    data: part.body.data.replace(/-/g, '+').replace(/_/g, '/'), // Base64url to Base64
+                    data: base64Data,
                     mimeType: part.mimeType || 'image/png'
                 };
             }
@@ -256,18 +263,20 @@ export function resolveCids(html: string, payload: any): string {
     if (payload.parts) {
         scanParts(payload.parts);
     } else if (payload.body?.data) {
-        // Se não tem parts mas tem data, pode ser uma parte única (raro para CID, mas preventivo)
+        // Parte única
     }
 
     // Substituir src="cid:..." por Data URI
     let resolvedHtml = html;
     for (const [cid, info] of Object.entries(cidMap)) {
         const dataUri = `data:${info.mimeType};base64,${info.data}`;
-        // Regex para encontrar src="cid:CID" ou src='cid:CID'
-        const cidRegex = new RegExp(`src=["']cid:${cid}["']`, 'gi');
-        resolvedHtml = resolvedHtml.replace(cidRegex, `src="${dataUri}"`);
         
-        // Também tentar sem o prefixo src se necessário, mas src é o padrão
+        // ESCAPAR o CID para uso em Regex (IDs costumam ter pontos, arrobas, etc)
+        const escapedCid = cid.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        
+        // Regex mais abrangente para encontrar o src com cid
+        const cidRegex = new RegExp(`src=["']cid:${escapedCid}["']`, 'gi');
+        resolvedHtml = resolvedHtml.replace(cidRegex, `src="${dataUri}"`);
     }
 
     return resolvedHtml;
