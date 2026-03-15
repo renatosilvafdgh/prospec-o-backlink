@@ -80,26 +80,26 @@ export async function GET(request: Request) {
                 continue;
             }
 
-            // 5. Buscar sites para CONTATO INICIAL (status='lead')
-            const { data: sitesLead } = await supabase
-                .from('sites')
-                .select('*')
-                .eq('status_contato', 'lead')
-                .eq('campanha_id', campanha.id)
-                .limit(limiteRestante);
-
-            // 6. Buscar sites para FOLLOW-UP (status='contatado' e data expirada)
+            // 5. Buscar sites para FOLLOW-UP primeiro (prioridade)
             const { data: sitesFollowup } = await supabase
                 .from('sites')
                 .select('*')
                 .eq('status_contato', 'contatado')
                 .eq('campanha_id', campanha.id)
                 .lte('proximo_followup', new Date().toISOString())
-                .limit(limiteRestante - (sitesLead?.length || 0));
+                .limit(limiteRestante);
+
+            // 6. Buscar sites para CONTATO INICIAL (status='lead') com o que sobrar
+            const { data: sitesLead } = await supabase
+                .from('sites')
+                .select('*')
+                .eq('status_contato', 'lead')
+                .eq('campanha_id', campanha.id)
+                .limit(limiteRestante - (sitesFollowup?.length || 0));
 
             const allSites = [
-                ...(sitesLead || []).map(s => ({ ...s, isFollowup: false })),
-                ...(sitesFollowup || []).map(s => ({ ...s, isFollowup: true }))
+                ...(sitesFollowup || []).map(s => ({ ...s, isFollowup: true })),
+                ...(sitesLead || []).map(s => ({ ...s, isFollowup: false }))
             ];
 
             console.log(`-> Sites prontos para processamento (Leads: ${sitesLead?.length || 0}, Followup: ${sitesFollowup?.length || 0})`);
@@ -242,7 +242,8 @@ export async function GET(request: Request) {
                         refreshToken: tokens.refresh_token,
                         to: site.email,
                         subject,
-                        body: trackedBody
+                        body: trackedBody,
+                        threadId: site.thread_id // Mantém na mesma conversa
                     });
 
                     const threadId = resEmail.data.threadId;
