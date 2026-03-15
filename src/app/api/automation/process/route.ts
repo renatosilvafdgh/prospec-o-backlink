@@ -14,11 +14,15 @@ export async function GET(request: Request) {
     const supabase = createAdminClient();
 
     // 1. Validar Secret ou Autenticação de Usuário
-    if (secret !== process.env.CRON_SECRET) {
+    const isValidSecret = secret && process.env.CRON_SECRET && secret.trim() === process.env.CRON_SECRET.trim();
+
+    if (!isValidSecret) {
+        console.log('[Automação] Secret inválido ou ausente. Verificando sessão de usuário...');
         const supabaseAuth = await createClient();
         const { data: { user } } = await supabaseAuth.auth.getUser();
 
         if (!user) {
+            console.error('[Automação] Acesso negado: Secret incorreto e nenhum usuário autenticado.');
             return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
         }
     }
