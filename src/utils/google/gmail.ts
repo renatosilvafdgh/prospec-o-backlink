@@ -179,12 +179,17 @@ export function cleanMessageBody(html: string | undefined): string {
         cleanHtml = cleanHtml.substring(0, match.index);
     }
 
-    // 3. Remover lixo estrutural e de estilo
+    // 3. Remover lixo estrutural e estilos gigantescos
     cleanHtml = cleanHtml.replace(/<style[\s\S]*?<\/style>/gi, '');
     cleanHtml = cleanHtml.replace(/<xml[\s\S]*?<\/xml>/gi, '');
     cleanHtml = cleanHtml.replace(/<!--[\s\S]*?-->/g, '');
 
-    // 4. Limpeza agressiva de espaços e tags vazias no início/fim
+    // 4. --- LÓGICA AGRESSIVA: Remover TODOS os atributos style ---
+    // Atributos de estilo são a maior causa de vácuos e espaçamentos indesejados
+    cleanHtml = cleanHtml.replace(/\s+style="[^"]*?"/gi, '');
+    cleanHtml = cleanHtml.replace(/\s+style='[^']*?'/gi, '');
+
+    // 5. Limpeza de espaços e tags vazias no início/fim
     const trimHtml = (str: string) => {
         let prev;
         let s = str.trim();
@@ -199,12 +204,14 @@ export function cleanMessageBody(html: string | undefined): string {
 
     cleanHtml = trimHtml(cleanHtml);
 
-    // 5. Normalizar quebras de linha múltiplas (máximo 2 <br>)
+    // 6. Normalizar quebras de linha (máximo 2 <br>)
     cleanHtml = cleanHtml.replace(/(?:<br\s*\/?>\s*){3,}/gi, '<br><br>');
 
-    // 6. Remover quebras de linha literais (\n) que atrapalham o whitespace-pre-wrap
-    // Como estamos renderizando HTML, as quebras devem ser apenas tags <br> ou blocos
+    // 7. Remover quebras de linha literais (\n) que atrapalham o whitespace-pre-wrap
     cleanHtml = cleanHtml.replace(/\n\r?/g, ' ');
+
+    // 8. Remover múltiplos espaços em branco para compactar
+    cleanHtml = cleanHtml.replace(/\s{2,}/g, ' ');
 
     return cleanHtml.trim();
 }
