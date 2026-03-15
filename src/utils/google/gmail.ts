@@ -157,26 +157,31 @@ export function cleanMessageBody(html: string | undefined): string {
 
     let cleanHtml = html;
 
-    // 1. Remover assinaturas e blocos do Gmail (gmail_quote)
-    // Procuramos por <div class="gmail_quote"> e removemos tudo o que houver dentro
-    const gmailQuoteRegex = /<div class="gmail_quote">[\s\S]*?<\/div>/gi;
-    cleanHtml = cleanHtml.replace(gmailQuoteRegex, '');
+    // 1. Marcas de histórico conhecidas (O que vier depois é lixo)
+    const markers = [
+        '<div class="gmail_quote">',
+        '<div class="gmail_signature">',
+        '<div id="appendonsend">',
+        '<hr id="divRplyFwdMsg"',
+        '<blockquote'
+    ];
 
-    // 2. Remover blocos de citação (blockquote)
-    const blockquoteRegex = /<blockquote[\s\S]*?<\/blockquote>/gi;
-    cleanHtml = cleanHtml.replace(blockquoteRegex, '');
+    for (const marker of markers) {
+        if (cleanHtml.includes(marker)) {
+            cleanHtml = cleanHtml.split(marker)[0];
+        }
+    }
 
-    // 3. Remover divisores comuns de e-mail (Outlook e outros)
-    const messageSeparatorRegex = /<div id="appendonsend">[\s\S]*$/gi;
-    cleanHtml = cleanHtml.replace(messageSeparatorRegex, '');
-
-    const outlookSeparatorRegex = /<hr[\s\S]*?id="divRplyFwdMsg"[\s\S]*?>[\s\S]*$/gi;
-    cleanHtml = cleanHtml.replace(outlookSeparatorRegex, '');
-
-    // 4. Remover frases de "Em ..., fulano escreveu:" (Texto simples que sobra)
-    // Isso é mais difícil em HTML, mas tentamos pegar o padrão típico
-    const wroteRegex = /(?:Em\s+.*,\s+.*escreveu:|On\s+.*,\s+.*wrote:)/gi;
-    cleanHtml = cleanHtml.replace(wroteRegex, '');
+    // 2. O cabeçalho de texto "Em ..., escreveu:"
+    // Exigimos que comece após uma quebra de linha ou no início do texto
+    // E limitamos o tamanho para 250 caracteres para não comer o corpo inteiro por engano
+    const wroteRegex = /(?:<br>|\n|^)\s*(?:Em|On)\s+[\s\S]{5,250}?(?:escreveu|wrote):/gi;
+    
+    // Pegar apenas o primeiro match se houver e cortar a partir dali
+    const match = wroteRegex.exec(cleanHtml);
+    if (match) {
+        cleanHtml = cleanHtml.substring(0, match.index);
+    }
 
     return cleanHtml.trim();
 }
