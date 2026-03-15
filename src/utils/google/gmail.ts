@@ -220,6 +220,22 @@ export function cleanMessageBody(html: string | undefined): string {
     return cleanHtml.trim();
 }
 
+
+/**
+ * Em vez de incorporar o Base64, transforma o cid:abc em uma URL de proxy.
+ * Isso economiza toneladas de CPU e memória no servidor principal, já que
+ * o navegador carregará as imagens sob demanda.
+ */
+export function resolveCidsToProxy(html: string, messageId: string): string {
+    if (!html) return html;
+    
+    // Substitui cid:abc ou cid:<abc> por uma URL de proxy
+    return html.replace(/cid:<?([^"'>\s]+)>?/gi, (match, foundCid) => {
+        const cleanFoundCid = foundCid.replace(/[<>]/g, '').trim();
+        return `/api/inbox/image?messageId=${messageId}&cid=${encodeURIComponent(cleanFoundCid)}`;
+    });
+}
+
 /**
  * Resolve referências cid: no corpo do e-mail, substituindo-as por Data URIs (Base64).
  */
