@@ -139,6 +139,7 @@ export default function InboxPage() {
                 if (data.threads.length === 1) {
                     setSelectedThreadId(data.threads[0].id);
                 }
+                setIsReplying(false); // Garante que começa fechado ao carregar nova lista
             }
         } catch (error) {
             console.error('Erro ao buscar lista de threads:', error);
@@ -155,6 +156,7 @@ export default function InboxPage() {
             if (data.messages) {
                 setThreadMessages(data.messages);
                 setThreadSubject(data.subject || '');
+                setIsReplying(false); // Garante que começa fechado ao abrir a thread
             }
         } catch (error) {
             console.error('Erro ao buscar thread:', error);
@@ -607,7 +609,7 @@ export default function InboxPage() {
                             ) : (
                                 <>
                                     {/* Corpo da Conversa (Chat) - Fundo Light */}
-                                    <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 bg-slate-50/30 min-h-0">
+                                    <div className="flex-[2] overflow-y-auto p-4 md:p-8 space-y-6 bg-slate-50/30 min-h-0">
                                         {loadingThread ? (
                                             <div className="flex flex-col items-center justify-center py-16 gap-3">
                                                 <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
@@ -648,7 +650,7 @@ export default function InboxPage() {
                                     {/* Área de Resposta Dinâmica */}
                                     <div className={cn(
                                         "border-t border-slate-100 bg-white shrink-0 transition-all duration-300",
-                                        isReplying ? "p-6 md:p-8" : "p-4"
+                                        isReplying ? "p-4 md:p-6" : "p-3 md:p-4"
                                     )}>
                                         {!isReplying ? (
                                             <div 
