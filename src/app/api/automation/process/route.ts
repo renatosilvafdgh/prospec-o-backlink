@@ -4,7 +4,6 @@ import { createAdminClient } from '@/utils/supabase/admin';
 import { sendEmail } from '@/utils/google/gmail';
 import { injectTracking } from '@/utils/track';
 
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -124,20 +123,20 @@ export async function GET(request: Request) {
                 let intervaloNecessario = 0;
 
                 if (campanha.usar_intervalo_humano) {
-                    // Se for modo humano, definimos um intervalo randômico fixo para a verificação (ex: 5 min) 
-                    // ou podemos usar um valor randômico por execução. Vamos usar 180s (3min) como mínimo segurança.
-                    intervaloNecessario = 180;
+                    // Para modo humano, testamos contra um valor randômico entre 3 e 12 minutos (180s - 720s)
+                    // Como o CRON roda periodicamente, isso criará uma distribuição natural e segura.
+                    intervaloNecessario = Math.floor(Math.random() * (720 - 180 + 1) + 180);
                 } else if (campanha.intervalo_envio_segundos > 0) {
                     intervaloNecessario = campanha.intervalo_envio_segundos;
                 }
 
                 if (tempoPassadoS < intervaloNecessario) {
-                    console.log(`-> [Aguardando] Campanha ${campanha.id} em intervalo. Passaram ${Math.floor(tempoPassadoS)}s de ${intervaloNecessario}s.`);
+                    console.log(`-> [Aguardando] Campanha ${campanha.id} em intervalo. Passaram ${Math.floor(tempoPassadoS)}s de min ${intervaloNecessario}s.`);
                     continue;
                 }
             }
 
-            // 6.7 Buscar blocklist global para carregar em memória (otimização para o lote)
+            // 6.7 Buscar blocklist global para carregar em memória
             const { data: blocklist } = await supabase
                 .from('global_blocklist')
                 .select('email')
@@ -145,147 +144,130 @@ export async function GET(request: Request) {
             
             const blockedEmails = new Set((blocklist || []).map(b => b.email.toLowerCase().trim()));
 
-            // 7. Processar múltiplos sites por execução (Lote)
-            // Limitamos a um máximo de 10 por execução para evitar timeout 503 da Hostinger
-            const maxLote = 10;
-            const sitesParaProcessar = allSites.slice(0, Math.min(limiteRestante, maxLote));
+            // 7. Processar APENAS UM site por campanha por execução (Segurança para Hostinger)
+            // Isso evita processos longos ("sleeping") que travam o servidor.
+            const site = allSites[0];
 
-            if (sitesParaProcessar.length === 0) {
+            if (!site) {
                 console.log(`-> Nenhum site pendente para a campanha ${campanha.id}`);
                 continue;
             }
 
-            console.log(`-> Processando lote de ${sitesParaProcessar.length} sites para a campanha ${campanha.id}`);
+            console.log(`-> Processando site ${site.url} para a campanha ${campanha.id}`);
 
-            for (const site of sitesParaProcessar) {
-                try {
-                    // Verificar se houve envio anterior nesta execução para aplicar o delay
-                    if (totalProcessed > 0 || sitesParaProcessar.indexOf(site) > 0) {
-                        const delayS = campanha.usar_intervalo_humano
-                            ? Math.floor(Math.random() * (720 - 180 + 1) + 180) // 3 a 12 min
-                            : (campanha.intervalo_envio_segundos || 10);
+            try {
+                const cleanUrl = site.url.replace(/https?:\/\//, '').split('/')[0];
+                const placeholders = {
+                    '{site}': cleanUrl,
+                    '{url}': site.url,
+                    '{nome}': cleanUrl.split('.')[0]
+                };
 
-                        console.log(`-> [Delay] Aguardando ${delayS}s antes do próximo envio...`);
-                        await sleep(delayS * 1000);
+                let template = null;
+                if (site.isFollowup) {
+                    const seq = campanha.sequencia_followup || [];
+                    const step = seq[site.followup_index];
+
+                    if (step && step.template_id) {
+                        const { data: tData } = await supabase.from('email_templates').select('*').eq('id', step.template_id).single();
+                        template = tData;
+                    } else if (campanha.template_followup) {
+                        template = campanha.template_followup;
                     }
-
-                    const cleanUrl = site.url.replace(/https?:\/\//, '').split('/')[0];
-                    const placeholders = {
-                        '{site}': cleanUrl,
-                        '{url}': site.url,
-                        '{nome}': cleanUrl.split('.')[0]
-                    };
-
-                    let template = null;
-                    if (site.isFollowup) {
-                        const seq = campanha.sequencia_followup || [];
-                        const step = seq[site.followup_index];
-
-                        if (step && step.template_id) {
-                            const { data: tData } = await supabase.from('email_templates').select('*').eq('id', step.template_id).single();
-                            template = tData;
-                        } else if (campanha.template_followup) {
-                            template = campanha.template_followup;
-                        }
-                    } else {
-                        template = campanha.template_inicial;
-                    }
-
-                    if (!template) {
-                        await supabase.from('email_logs').insert({ user_id: campanha.user_id, campanha_id: campanha.id, site_id: site.id, status_envio: 'debug_sem_template', tipo: 'primeiro_contato' });
-                        continue;
-                    }
-
-                    if (!site.email) {
-                        await supabase.from('email_logs').insert({ user_id: campanha.user_id, campanha_id: campanha.id, site_id: site.id, status_envio: 'debug_sem_email', tipo: 'primeiro_contato' });
-                        continue;
-                    }
-
-                    // --- VERIFICAÇÃO DE BLOCKLIST GLOBAL ---
-                    if (blockedEmails.has(site.email.toLowerCase().trim())) {
-                        console.log(`🚫 Site ${site.url} ignorado: e-mail na blocklist global.`);
-                        await supabase.from('sites').update({
-                            status_contato: 'invalid',
-                            ultimo_contato: new Date().toISOString()
-                        }).eq('id', site.id);
-                        
-                        await supabase.from('email_logs').insert({ 
-                            user_id: campanha.user_id, 
-                            campanha_id: campanha.id, 
-                            site_id: site.id, 
-                            status_envio: 'ignorado_blocklist', 
-                            tipo: site.isFollowup ? 'followup' : 'primeiro_contato' 
-                        });
-                        continue;
-                    }
-
-                    let subject = template.assunto;
-                    let body = template.corpo_email;
-
-                    Object.entries(placeholders).forEach(([key, val]) => {
-                        subject = subject.replace(new RegExp(key, 'g'), val);
-                        body = body.replace(new RegExp(key, 'g'), val);
-                    });
-
-                    const { data: logData, error: logError } = await supabase.from('email_logs').insert({
-                        user_id: campanha.user_id,
-                        site_id: site.id,
-                        campanha_id: campanha.id,
-                        status_envio: 'pendente',
-                        tipo: site.isFollowup ? `followup_${site.followup_index + 1}` : 'primeiro_contato'
-                    }).select().single();
-
-                    if (logError || !logData) {
-                        throw new Error(`Erro ao criar log: ${logError?.message}`);
-                    }
-
-                    const trackedBody = injectTracking(body, logData.id);
-
-                    const resEmail = await sendEmail({
-                        accessToken: tokens.access_token,
-                        refreshToken: tokens.refresh_token,
-                        to: site.email,
-                        subject,
-                        body: trackedBody,
-                        threadId: site.thread_id // Mantém na mesma conversa
-                    });
-
-                    const threadId = resEmail.data.threadId;
-
-                    const sequencia = campanha.sequencia_followup || [];
-                    const proximoIndex = site.isFollowup ? (site.followup_index + 1) : 0;
-                    const temMaisFollowups = proximoIndex < sequencia.length;
-
-                    let proximoStatus = 'contatado';
-                    let dataProximoFollowup = null;
-
-                    if (temMaisFollowups) {
-                        const proximoPasso = sequencia[proximoIndex];
-                        dataProximoFollowup = new Date(Date.now() + 86400000 * proximoPasso.dias).toISOString();
-                        proximoStatus = 'contatado';
-                    } else {
-                        proximoStatus = 'em_aguardo';
-                        dataProximoFollowup = null;
-                    }
-
-                    await supabase.from('email_logs').update({
-                        status_envio: 'sucesso'
-                    }).eq('id', logData.id);
-
-                    await supabase.from('sites').update({
-                        status_contato: proximoStatus,
-                        ultimo_contato: new Date().toISOString(),
-                        thread_id: threadId,
-                        followup_index: site.isFollowup ? proximoIndex : 0,
-                        proximo_followup: dataProximoFollowup
-                    }).eq('id', site.id);
-
-                    totalProcessed++;
-                    console.log(`[Automação] E-mail enviado com sucesso para ${site.url}`);
-                } catch (err: any) {
-                    console.error(`Erro ao processar site ${site.url}:`, err);
-                    await supabase.from('email_logs').insert({ user_id: campanha.user_id, campanha_id: campanha.id, site_id: site.id, status_envio: 'debug_sendemail_throw: ' + err.message, tipo: 'primeiro_contato' });
+                } else {
+                    template = campanha.template_inicial;
                 }
+
+                if (!template) {
+                    await supabase.from('email_logs').insert({ user_id: campanha.user_id, campanha_id: campanha.id, site_id: site.id, status_envio: 'debug_sem_template', tipo: 'primeiro_contato' });
+                    continue;
+                }
+
+                if (!site.email) {
+                    await supabase.from('email_logs').insert({ user_id: campanha.user_id, campanha_id: campanha.id, site_id: site.id, status_envio: 'debug_sem_email', tipo: 'primeiro_contato' });
+                    continue;
+                }
+
+                // --- VERIFICAÇÃO DE BLOCKLIST GLOBAL ---
+                if (blockedEmails.has(site.email.toLowerCase().trim())) {
+                    console.log(`🚫 Site ${site.url} ignorado: e-mail na blocklist.`);
+                    await supabase.from('sites').update({
+                        status_contato: 'invalid',
+                        ultimo_contato: new Date().toISOString()
+                    }).eq('id', site.id);
+                    
+                    await supabase.from('email_logs').insert({ 
+                        user_id: campanha.user_id, 
+                        campanha_id: campanha.id, 
+                        site_id: site.id, 
+                        status_envio: 'ignorado_blocklist', 
+                        tipo: site.isFollowup ? 'followup' : 'primeiro_contato' 
+                    });
+                    continue;
+                }
+
+                let subject = template.assunto;
+                let body = template.corpo_email;
+
+                Object.entries(placeholders).forEach(([key, val]) => {
+                    subject = subject.replace(new RegExp(key, 'g'), val);
+                    body = body.replace(new RegExp(key, 'g'), val);
+                });
+
+                const { data: logData, error: logError } = await supabase.from('email_logs').insert({
+                    user_id: campanha.user_id,
+                    site_id: site.id,
+                    campanha_id: campanha.id,
+                    status_envio: 'pendente',
+                    tipo: site.isFollowup ? `followup_${site.followup_index + 1}` : 'primeiro_contato'
+                }).select().single();
+
+                if (logError || !logData) throw new Error(`Erro log: ${logError?.message}`);
+
+                const trackedBody = injectTracking(body, logData.id);
+
+                const resEmail = await sendEmail({
+                    accessToken: tokens.access_token,
+                    refreshToken: tokens.refresh_token,
+                    to: site.email,
+                    subject,
+                    body: trackedBody,
+                    threadId: site.thread_id
+                });
+
+                const threadId = resEmail.data.threadId;
+
+                const sequencia = campanha.sequencia_followup || [];
+                const proximoIndex = site.isFollowup ? (site.followup_index + 1) : 0;
+                const temMaisFollowups = proximoIndex < sequencia.length;
+
+                let proximoStatus = 'contatado';
+                let dataProximoFollowup = null;
+
+                if (temMaisFollowups) {
+                    const proximoPasso = sequencia[proximoIndex];
+                    dataProximoFollowup = new Date(Date.now() + 86400000 * proximoPasso.dias).toISOString();
+                    proximoStatus = 'contatado';
+                } else {
+                    proximoStatus = 'em_aguardo';
+                    dataProximoFollowup = null;
+                }
+
+                await supabase.from('email_logs').update({ status_envio: 'sucesso' }).eq('id', logData.id);
+
+                await supabase.from('sites').update({
+                    status_contato: proximoStatus,
+                    ultimo_contato: new Date().toISOString(),
+                    thread_id: threadId,
+                    followup_index: site.isFollowup ? proximoIndex : 0,
+                    proximo_followup: dataProximoFollowup
+                }).eq('id', site.id);
+
+                totalProcessed++;
+                console.log(`[Automação] E-mail enviado com sucesso para ${site.url}`);
+            } catch (err: any) {
+                console.error(`Erro processar site ${site.url}:`, err);
+                await supabase.from('email_logs').insert({ user_id: campanha.user_id, campanha_id: campanha.id, site_id: site.id, status_envio: 'erro: ' + err.message, tipo: 'primeiro_contato' });
             }
         }
 
