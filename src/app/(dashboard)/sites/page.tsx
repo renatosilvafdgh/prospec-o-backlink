@@ -306,6 +306,37 @@ export default function SitesPage() {
         }
     }
 
+    async function handleMarkAsReplied(ids: string | string[]) {
+        const targetIds = Array.isArray(ids) ? ids : [ids];
+        if (targetIds.length === 0) return;
+        
+        const confirmMsg = targetIds.length === 1 
+            ? 'Marcar este site como Respondido? Isso interromperá os follow-ups.' 
+            : `Marcar ${targetIds.length} sites como Respondidos? Isso interromperá os follow-ups.`;
+
+        if (!confirm(confirmMsg)) return;
+
+        try {
+            setIsSaving(true);
+            const { error } = await supabase
+                .from('sites')
+                .update({ 
+                    status_contato: 'respondeu',
+                    ultimo_contato: new Date().toISOString()
+                })
+                .in('id', targetIds);
+
+            if (error) throw error;
+            
+            if (targetIds.length > 1) setSelectedSites([]);
+            fetchSites(currentPage);
+        } catch (error: any) {
+            alert('Erro ao atualizar status: ' + error.message);
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
     const toggleSelectSite = (id: string) => {
         setSelectedSites(prev => {
             if (prev.includes(id)) {
@@ -387,6 +418,13 @@ export default function SitesPage() {
                         >
                             <Zap className="w-4 h-4" />
                             Atribuir Campanha
+                        </button>
+                        <button
+                            onClick={() => handleMarkAsReplied(selectedSites)}
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white hover:opacity-90 transition-all text-sm font-bold shadow-lg shadow-emerald-600/20"
+                        >
+                            <Check className="w-4 h-4" />
+                            Marcar Respondido
                         </button>
                     </div>
                 )}
@@ -491,16 +529,27 @@ export default function SitesPage() {
                                         </td>
                                         <td className="px-6 py-4 text-sm">{site.categoria || '—'}</td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${site.status_contato === 'respondeu' ? 'bg-emerald-500/10 text-emerald-500' :
-                                                site.status_contato === 'contatado' ? 'bg-amber-500/10 text-amber-500' :
-                                                    site.status_contato === 'fechado' ? 'bg-indigo-500/10 text-indigo-500' :
-                                                        site.status_contato === 'recusado' ? 'bg-rose-500/10 text-rose-500' :
-                                                            site.status_contato === 'invalid' ? 'bg-slate-500/10 text-slate-500 border border-slate-200' :
-                                                                'bg-blue-500/10 text-blue-500'
-                                                }`}>
-                                                {site.status_contato === 'lead' || !site.status_contato ? 'Não contatado' :
-                                                    site.status_contato === 'invalid' ? 'E-mail Inválido' : site.status_contato}
-                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${site.status_contato === 'respondeu' ? 'bg-emerald-500/10 text-emerald-500' :
+                                                    site.status_contato === 'contatado' ? 'bg-amber-500/10 text-amber-500' :
+                                                        site.status_contato === 'fechado' ? 'bg-indigo-500/10 text-indigo-500' :
+                                                            site.status_contato === 'recusado' ? 'bg-rose-500/10 text-rose-500' :
+                                                                site.status_contato === 'invalid' ? 'bg-slate-500/10 text-slate-500 border border-slate-200' :
+                                                                    'bg-blue-500/10 text-blue-500'
+                                                    }`}>
+                                                    {site.status_contato === 'lead' || !site.status_contato ? 'Não contatado' :
+                                                        site.status_contato === 'invalid' ? 'E-mail Inválido' : site.status_contato}
+                                                </span>
+                                                {site.status_contato === 'contatado' && (
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); handleMarkAsReplied(site.id); }}
+                                                        className="p-1 hover:bg-emerald-500/20 text-emerald-500 rounded transition-colors"
+                                                        title="Marcar como Respondido"
+                                                    >
+                                                        <CheckSquare className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -803,6 +852,11 @@ export default function SitesPage() {
                                 <button onClick={() => { setEditingSite(drawerSite); setDrawerSite(null); }} className="flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all bg-[#1e293b] hover:bg-[#334155] text-white border border-[#334155]">
                                     <Edit2 className="w-5 h-5" /> Editar Informações
                                 </button>
+                                {drawerSite.status_contato === 'contatado' && (
+                                    <button onClick={() => { handleMarkAsReplied(drawerSite.id); setDrawerSite(null); }} className="flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all bg-emerald-950/30 hover:bg-emerald-900/50 text-emerald-400 border border-emerald-900/50">
+                                        <Check className="w-5 h-5" /> Marcar Respondido
+                                    </button>
+                                )}
                                 <button onClick={() => { handleDeleteSite(drawerSite.id); setDrawerSite(null); }} className="flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all bg-rose-950/30 hover:bg-rose-900/50 text-rose-400 border border-rose-900/50">
                                     <Trash2 className="w-5 h-5" /> Excluir
                                 </button>
