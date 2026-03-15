@@ -1,10 +1,15 @@
 import { createClient } from '@/utils/supabase/client';
 
 export function getAppUrl() {
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
+  let url = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  url = url.replace(/\/$/, '');
+  
+  // Garantir que tenha protocolo se não for localhost
+  if (!url.startsWith('http')) {
+    url = `https://${url}`;
   }
-  return 'http://localhost:3000';
+  
+  return url;
 }
 
 /**
