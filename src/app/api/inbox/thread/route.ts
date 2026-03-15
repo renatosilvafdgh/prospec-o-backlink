@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
-import { getGmailClient, getMessageBody } from '@/utils/google/gmail';
+import { getGmailClient, getMessageBody, cleanMessageBody } from '@/utils/google/gmail';
 
 export async function GET(request: Request) {
     try {
@@ -49,6 +49,7 @@ export async function GET(request: Request) {
             const subject = headers?.find(h => h.name?.toLowerCase() === 'subject')?.value || '';
 
             const body = getMessageBody(msg.payload);
+            const cleanBody = cleanMessageBody(body);
 
             // Limpar HTML se necessário (por enquanto manteremos para renderizar)
             return {
@@ -57,7 +58,7 @@ export async function GET(request: Request) {
                 subject,
                 from,
                 date,
-                body,
+                body: cleanBody || body, // Fallback para body original se a limpeza for agressiva demais
                 isMe: from.toLowerCase().includes(tokens.google_email.toLowerCase())
             };
         });

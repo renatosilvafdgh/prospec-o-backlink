@@ -147,3 +147,36 @@ export function getMessageBody(payload: any): string {
 
     return '';
 }
+
+/**
+ * Limpa o corpo do e-mail removendo o histórico citado (quoted text).
+ * Foca em padrões do Gmail e Outlook.
+ */
+export function cleanMessageBody(html: string | undefined): string {
+    if (!html) return '';
+
+    let cleanHtml = html;
+
+    // 1. Remover assinaturas e blocos do Gmail (gmail_quote)
+    // Procuramos por <div class="gmail_quote"> e removemos tudo o que houver dentro
+    const gmailQuoteRegex = /<div class="gmail_quote">[\s\S]*?<\/div>/gi;
+    cleanHtml = cleanHtml.replace(gmailQuoteRegex, '');
+
+    // 2. Remover blocos de citação (blockquote)
+    const blockquoteRegex = /<blockquote[\s\S]*?<\/blockquote>/gi;
+    cleanHtml = cleanHtml.replace(blockquoteRegex, '');
+
+    // 3. Remover divisores comuns de e-mail (Outlook e outros)
+    const messageSeparatorRegex = /<div id="appendonsend">[\s\S]*$/gi;
+    cleanHtml = cleanHtml.replace(messageSeparatorRegex, '');
+
+    const outlookSeparatorRegex = /<hr[\s\S]*?id="divRplyFwdMsg"[\s\S]*?>[\s\S]*$/gi;
+    cleanHtml = cleanHtml.replace(outlookSeparatorRegex, '');
+
+    // 4. Remover frases de "Em ..., fulano escreveu:" (Texto simples que sobra)
+    // Isso é mais difícil em HTML, mas tentamos pegar o padrão típico
+    const wroteRegex = /(?:Em\s+.*,\s+.*escreveu:|On\s+.*,\s+.*wrote:)/gi;
+    cleanHtml = cleanHtml.replace(wroteRegex, '');
+
+    return cleanHtml.trim();
+}
