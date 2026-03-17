@@ -79,7 +79,7 @@ export async function GET(request: Request) {
             console.log(`-> Limite da campanha: ${campanha.emails_por_dia}. Enviados hoje: ${jaEnviadosHoje}. Restante: ${limiteRestante}`);
 
             if (limiteRestante <= 0) {
-                await supabase.from('email_logs').insert({ user_id: campanha.user_id, campanha_id: campanha.id, status_envio: 'debug_limite_zero', tipo: 'primeiro_contato' });
+                console.log(`-> Limite atingido para a campanha ${campanha.id}.`);
                 continue;
             }
 

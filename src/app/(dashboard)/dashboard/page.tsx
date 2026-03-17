@@ -37,13 +37,14 @@ export default function DashboardPage() {
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', user.id);
 
-            // 2. E-mails enviados hoje
+            // 2. E-mails enviados hoje (Somente Sucesso)
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const { count: sentToday } = await supabase
                 .from('email_logs')
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', user.id)
+                .eq('status_envio', 'sucesso')
                 .gte('data_envio', today.toISOString());
 
             // 3. Respostas
@@ -53,26 +54,22 @@ export default function DashboardPage() {
                 .eq('user_id', user.id)
                 .eq('status_contato', 'respondeu');
 
-            // Calcular taxa de resposta
-            const { count: totalSent } = await supabase
-                .from('email_logs')
-                .select('*', { count: 'exact', head: true })
-                .eq('user_id', user.id);
-
-            // 4. Aberturas e Cliques (Total)
+            // 4. Aberturas e Cliques (Somente Hoje)
             const { data: interactionData } = await supabase
                 .from('email_logs')
                 .select('aberturas, cliques')
-                .eq('user_id', user.id);
+                .eq('user_id', user.id)
+                .eq('status_envio', 'sucesso')
+                .gte('data_envio', today.toISOString());
 
-            const totalOpenings = interactionData?.reduce((acc, curr) => acc + (curr.aberturas || 0), 0) || 0;
-            const totalClicks = interactionData?.reduce((acc, curr) => acc + (curr.cliques || 0), 0) || 0;
+            const openingsToday = interactionData?.reduce((acc, curr) => acc + (curr.aberturas || 0), 0) || 0;
+            const clicksToday = interactionData?.reduce((acc, curr) => acc + (curr.cliques || 0), 0) || 0;
 
             setStats([
                 { label: 'Total de Sites', value: totalSites?.toLocaleString() || '0', icon: Users, color: 'text-blue-500' },
                 { label: 'E-mails Hoje', value: sentToday?.toLocaleString() || '0', icon: Send, color: 'text-indigo-500' },
-                { label: 'Aberturas', value: totalOpenings.toLocaleString(), icon: Mail, color: 'text-emerald-500' },
-                { label: 'Cliques', value: totalClicks.toLocaleString(), icon: TrendingUp, color: 'text-amber-500' },
+                { label: 'Aberturas', value: openingsToday.toLocaleString(), icon: Mail, color: 'text-emerald-500' },
+                { label: 'Cliques', value: clicksToday.toLocaleString(), icon: TrendingUp, color: 'text-amber-500' },
             ]);
 
         } catch (error) {
