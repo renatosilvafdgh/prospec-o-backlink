@@ -1,9 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  generateBuildId: async () => {
-    // Generate a unique build ID based on the current timestamp
-    return `build-${Date.now()}`;
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, s-maxage=0, must-revalidate',
+          },
+        ],
+      },
+    ];
   },
 };
 
