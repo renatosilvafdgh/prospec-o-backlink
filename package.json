@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "clean": "rimraf .next",
+    "build": "npm run clean && next build",
     "start": "next start",
     "lint": "eslint"
   },
@@ -27,6 +28,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "rimraf": "^5.0.0",
     "supabase": "^2.76.17",
     "tailwindcss": "^4",
     "typescript": "^5"
