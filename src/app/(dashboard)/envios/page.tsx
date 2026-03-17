@@ -15,6 +15,7 @@ import {
 import { createClient } from '@/utils/supabase/client';
 
 export default function EnviosPage() {
+    const [mounted, setMounted] = useState(false);
     const [logs, setLogs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -22,6 +23,10 @@ export default function EnviosPage() {
     const [totalCount, setTotalCount] = useState(0);
     const pageSize = 30;
     const supabase = createClient();
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     useEffect(() => {
         fetchLogs(currentPage);

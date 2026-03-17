@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { ModalPortal } from '@/components/ui/ModalPortal';
 
 export default function CampanhasPage() {
+    const [mounted, setMounted] = useState(false);
     const [campanhas, setCampanhas] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -15,6 +16,10 @@ export default function CampanhasPage() {
     const [templates, setTemplates] = useState<any[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [editingCampanha, setEditingCampanha] = useState<any | null>(null);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const [newCampanha, setNewCampanha] = useState({
         nome_campanha: '',

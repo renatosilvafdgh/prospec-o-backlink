@@ -33,11 +33,16 @@ function cn(...inputs: any[]) {
 }
 
 export default function InboxPage() {
+    const [mounted, setMounted] = useState(false);
     const [responses, setResponses] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [replyingTo, setReplyingTo] = useState<any | null>(null);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
     const [availableThreads, setAvailableThreads] = useState<any[]>([]);
     const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
     const [threadMessages, setThreadMessages] = useState<any[]>([]);
@@ -46,8 +51,6 @@ export default function InboxPage() {
     const [loadingThreads, setLoadingThreads] = useState(false);
     const [replyBody, setReplyBody] = useState('');
     const [isSending, setIsSending] = useState(false);
-    const [isSyncing, setIsSyncing] = useState(false);
-    const [mounted, setMounted] = useState(false);
     const [mainTab, setMainTab] = useState<'inbox' | 'lixeira'>('inbox');
     const [readFilter, setReadFilter] = useState<'todos' | 'lidos' | 'nao_lidos'>('nao_lidos');
     const [classFilter, setClassFilter] = useState<string>('todos');
@@ -56,8 +59,6 @@ export default function InboxPage() {
     const [commentBody, setCommentBody] = useState('');
     const [isSavingComment, setIsSavingComment] = useState(false);
     const supabase = createClient();
-
-    useEffect(() => { setMounted(true); }, []);
 
     useEffect(() => {
         fetchResponses();

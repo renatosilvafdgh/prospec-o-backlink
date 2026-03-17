@@ -18,6 +18,7 @@ import { createClient } from '@/utils/supabase/client';
 import { ModalPortal } from '@/components/ui/ModalPortal';
 
 export default function TemplatesPage() {
+    const [mounted, setMounted] = useState(false);
     const [templates, setTemplates] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -25,6 +26,10 @@ export default function TemplatesPage() {
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [newTemplate, setNewTemplate] = useState({ nome_template: '', assunto: '', corpo_email: '' });
     const [editingTemplate, setEditingTemplate] = useState<any | null>(null);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const contentRef = useRef<HTMLTextAreaElement>(null);
     const subjectRef = useRef<HTMLInputElement>(null);
