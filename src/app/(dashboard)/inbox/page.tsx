@@ -21,7 +21,8 @@ import {
     Star,
     CheckCircle,
     Trash2,
-    AlertCircle
+    AlertCircle,
+    StickyNote
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
@@ -51,6 +52,9 @@ export default function InboxPage() {
     const [readFilter, setReadFilter] = useState<'todos' | 'lidos' | 'nao_lidos'>('nao_lidos');
     const [classFilter, setClassFilter] = useState<string>('todos');
     const [isReplying, setIsReplying] = useState(false);
+    const [isCommenting, setIsCommenting] = useState(false);
+    const [commentBody, setCommentBody] = useState('');
+    const [isSavingComment, setIsSavingComment] = useState(false);
     const supabase = createClient();
 
     useEffect(() => { setMounted(true); }, []);
@@ -62,6 +66,8 @@ export default function InboxPage() {
     useEffect(() => {
         if (replyingTo) {
             fetchThreadsList(replyingTo.email);
+            setCommentBody(replyingTo.observacoes || '');
+            setIsCommenting(false);
             // Marcar como lido se ainda não estiver
             if (!replyingTo.lido) {
                 markAsRead(replyingTo.id);
@@ -118,6 +124,35 @@ export default function InboxPage() {
             }
         } catch (error) {
             console.error('Erro ao atualizar classificação:', error);
+        }
+    }
+
+    async function handleSaveComment() {
+        if (!replyingTo) return;
+        try {
+            setIsSavingComment(true);
+            const res = await fetch('/api/inbox/update-site', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    siteId: replyingTo.id, 
+                    observacoes: commentBody 
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                toast.success('Comentário salvo!');
+                // Atualizar estados locais
+                setResponses(prev => prev.map(r => r.id === replyingTo.id ? { ...r, observacoes: commentBody } : r));
+                setReplyingTo({ ...replyingTo, observacoes: commentBody });
+                setIsCommenting(false);
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error: any) {
+            toast.error('Erro ao salvar comentário: ' + error.message);
+        } finally {
+            setIsSavingComment(false);
         }
     }
 
@@ -578,6 +613,16 @@ export default function InboxPage() {
                                             <Trash2 className="w-5 h-5" />
                                         </button>
                                     )}
+                                    <button
+                                        onClick={() => setIsCommenting(!isCommenting)}
+                                        className={cn(
+                                            "p-3 hover:bg-white hover:shadow-md rounded-2xl transition-all border border-transparent hover:border-slate-100 mr-2",
+                                            replyingTo.observacoes ? "text-emerald-500" : "text-slate-400 hover:text-indigo-600"
+                                        )}
+                                        title="Adicionar Comentário/Observação"
+                                    >
+                                        <StickyNote className="w-5 h-5" />
+                                    </button>
                                     {selectedThreadId && (
                                         <a
                                             href={`https://mail.google.com/mail/u/0/#thread/${selectedThreadId}`}
@@ -597,6 +642,35 @@ export default function InboxPage() {
                                     </button>
                                 </div>
                             </div>
+
+                            {/* Área de Comentário Expansível */}
+                            {isCommenting && (
+                                <div className="px-8 py-6 bg-amber-50/50 border-b border-amber-100/50 animate-in slide-in-from-top-4 duration-300 shrink-0">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h4 className="text-[10px] font-black text-amber-600 uppercase tracking-[0.2em] flex items-center gap-2">
+                                            <StickyNote className="w-3 h-3" /> Observações Internas
+                                        </h4>
+                                        <span className="text-[10px] text-amber-500 font-bold italic">Apenas você vê isso</span>
+                                    </div>
+                                    <textarea
+                                        autoFocus
+                                        className="w-full p-4 rounded-2xl bg-white border border-amber-200 focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition-all text-sm text-slate-700 placeholder:text-slate-300 min-h-[100px] shadow-sm font-medium"
+                                        placeholder="Escreva aqui detalhes importantes sobre este lead..."
+                                        value={commentBody}
+                                        onChange={(e) => setCommentBody(e.target.value)}
+                                    />
+                                    <div className="flex justify-end mt-4">
+                                        <button
+                                            onClick={handleSaveComment}
+                                            disabled={isSavingComment}
+                                            className="px-6 py-2.5 rounded-xl bg-amber-500 text-white font-bold text-xs uppercase tracking-widest hover:bg-amber-600 transition-all shadow-lg shadow-amber-200 disabled:opacity-50 flex items-center gap-2"
+                                        >
+                                            {isSavingComment ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
+                                            Salvar Observação
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Conteúdo: Lista de Threads ou Chat */}
                             {!selectedThreadId ? (

@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     }
 
     try {
-        const { siteId, lido, classificacao_lead } = await request.json();
+        const { siteId, lido, classificacao_lead, observacoes } = await request.json();
 
         if (!siteId) {
             return NextResponse.json({ error: 'ID do site é obrigatório' }, { status: 400 });
@@ -19,6 +19,7 @@ export async function POST(request: Request) {
         const updateData: any = {};
         if (lido !== undefined) updateData.lido = lido;
         if (classificacao_lead !== undefined) updateData.classificacao_lead = classificacao_lead;
+        if (observacoes !== undefined) updateData.observacoes = observacoes;
 
         const { error } = await supabase
             .from('sites')
