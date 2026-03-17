@@ -19,16 +19,19 @@ export default function DashboardPage() {
         { label: 'Taxa de Resposta', value: '0%', icon: TrendingUp, color: 'text-amber-500' },
     ]);
     const [loading, setLoading] = useState(true);
+    const [mounted, setMounted] = useState(false);
     const supabase = createClient();
 
     useEffect(() => {
+        setMounted(true);
         fetchStats();
     }, []);
 
     async function fetchStats() {
         try {
             setLoading(true);
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data, error } = await supabase.auth.getUser();
+            const user = data?.user;
             if (!user) return;
 
             // 1. Total de Sites
@@ -79,6 +82,8 @@ export default function DashboardPage() {
         }
     }
 
+    if (!mounted) return null;
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             <div className="flex justify-between items-end">
@@ -105,7 +110,7 @@ export default function DashboardPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="p-6 rounded-2xl glass border border-border h-80 flex flex-col items-center justify-center text-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-indigo-600/10 flex items-center justify-center">
                         <TrendingUp className="w-6 h-6 text-indigo-600" />
                     </div>
                     <div>
