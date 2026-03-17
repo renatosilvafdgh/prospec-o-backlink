@@ -306,9 +306,14 @@ export default function InboxPage() {
         { id: 'parceria_fechada', label: 'Parceria Fechada', color: 'bg-indigo-50 text-indigo-600 border-indigo-100', icon: <CheckCircle className="w-4 h-4" /> },
     ];
 
-    const isStale = (date: string) => {
-        if (!date) return false;
-        const lastContact = new Date(date).getTime();
+    const isStale = (site: any) => {
+        if (!site?.ultimo_contato) return false;
+        
+        // Regra: Somente alerta para 'oportunidade' (Chance de Parceria) e 'aguardando' (Aguardando Retorno)
+        const allowedStatus = ['oportunidade', 'aguardando'];
+        if (!allowedStatus.includes(site.classificacao_lead)) return false;
+
+        const lastContact = new Date(site.ultimo_contato).getTime();
         const now = new Date().getTime();
         const diffDays = (now - lastContact) / (1000 * 60 * 60 * 24);
         return diffDays > 5;
@@ -481,12 +486,12 @@ export default function InboxPage() {
                                 <div className="space-y-1">
                                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter flex items-center gap-1">
                                         Último Contato
-                                        {isStale(site.ultimo_contato) && (
+                                        {isStale(site) && (
                                             <AlertCircle className="w-3 h-3 text-rose-500 animate-pulse" />
                                         )}
                                     </p>
-                                    <div className={`flex items-center gap-1.5 text-sm font-semibold ${isStale(site.ultimo_contato) ? 'text-rose-600' : 'text-slate-700'}`}>
-                                        <Clock className={`w-3.5 h-3.5 ${isStale(site.ultimo_contato) ? 'text-rose-400' : 'text-slate-400'}`} />
+                                    <div className={`flex items-center gap-1.5 text-sm font-semibold ${isStale(site) ? 'text-rose-600' : 'text-slate-700'}`}>
+                                        <Clock className={`w-3.5 h-3.5 ${isStale(site) ? 'text-rose-400' : 'text-slate-400'}`} />
                                         {site.ultimo_contato ? new Date(site.ultimo_contato).toLocaleDateString() : 'N/A'}
                                     </div>
                                 </div>
