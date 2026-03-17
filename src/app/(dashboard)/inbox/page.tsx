@@ -338,6 +338,7 @@ export default function InboxPage() {
         { id: 'oportunidade', label: 'Chance de Parceria', color: 'bg-emerald-50 text-emerald-600 border-emerald-100', icon: <Star className="w-4 h-4" /> },
         { id: 'aguardando', label: 'Aguardando Retorno', color: 'bg-amber-50 text-amber-600 border-amber-100', icon: <Clock className="w-4 h-4" /> },
         { id: 'descartado', label: 'Não Serve', color: 'bg-rose-50 text-rose-600 border-rose-100', icon: <X className="w-4 h-4" /> },
+        { id: 'somente_pago', label: 'Somente Pago', color: 'bg-purple-50 text-purple-600 border-purple-100', icon: <Mail className="w-4 h-4" /> },
         { id: 'parceria_fechada', label: 'Parceria Fechada', color: 'bg-indigo-50 text-indigo-600 border-indigo-100', icon: <CheckCircle className="w-4 h-4" /> },
     ];
 
