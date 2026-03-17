@@ -20,7 +20,8 @@ import {
     Tag,
     Star,
     CheckCircle,
-    Trash2
+    Trash2,
+    AlertCircle
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
@@ -305,6 +306,14 @@ export default function InboxPage() {
         { id: 'parceria_fechada', label: 'Parceria Fechada', color: 'bg-indigo-50 text-indigo-600 border-indigo-100', icon: <CheckCircle className="w-4 h-4" /> },
     ];
 
+    const isStale = (date: string) => {
+        if (!date) return false;
+        const lastContact = new Date(date).getTime();
+        const now = new Date().getTime();
+        const diffDays = (now - lastContact) / (1000 * 60 * 60 * 24);
+        return diffDays > 5;
+    };
+
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -470,9 +479,14 @@ export default function InboxPage() {
 
                             <div className="flex flex-wrap items-center gap-4 md:gap-8">
                                 <div className="space-y-1">
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Último Contato</p>
-                                    <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-700">
-                                        <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter flex items-center gap-1">
+                                        Último Contato
+                                        {isStale(site.ultimo_contato) && (
+                                            <AlertCircle className="w-3 h-3 text-rose-500 animate-pulse" />
+                                        )}
+                                    </p>
+                                    <div className={`flex items-center gap-1.5 text-sm font-semibold ${isStale(site.ultimo_contato) ? 'text-rose-600' : 'text-slate-700'}`}>
+                                        <Clock className={`w-3.5 h-3.5 ${isStale(site.ultimo_contato) ? 'text-rose-400' : 'text-slate-400'}`} />
                                         {site.ultimo_contato ? new Date(site.ultimo_contato).toLocaleDateString() : 'N/A'}
                                     </div>
                                 </div>
