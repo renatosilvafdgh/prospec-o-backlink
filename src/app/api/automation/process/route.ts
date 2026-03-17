@@ -58,7 +58,7 @@ export async function GET(request: Request) {
             }
 
             if (!tokens) {
-                await supabase.from('email_logs').insert({ user_id: campanha.user_id, campanha_id: campanha.id, status_envio: 'debug_sem_token', tipo: 'primeiro_contato' });
+                console.log(`[Automação] User ${campanha.user_id} sem tokens Gmail. Pulando.`);
                 continue;
             }
 
@@ -179,12 +179,12 @@ export async function GET(request: Request) {
                 }
 
                 if (!template) {
-                    await supabase.from('email_logs').insert({ user_id: campanha.user_id, campanha_id: campanha.id, site_id: site.id, status_envio: 'debug_sem_template', tipo: 'primeiro_contato' });
+                    console.log(`[Automação] Template não encontrado para campanha ${campanha.id}. Pulando site.`);
                     continue;
                 }
 
                 if (!site.email) {
-                    await supabase.from('email_logs').insert({ user_id: campanha.user_id, campanha_id: campanha.id, site_id: site.id, status_envio: 'debug_sem_email', tipo: 'primeiro_contato' });
+                    console.log(`[Automação] Site ${site.url} sem e-mail. Pulando.`);
                     continue;
                 }
 
