@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
     MessageSquare,
@@ -58,7 +58,7 @@ export default function InboxPage() {
     const [isCommenting, setIsCommenting] = useState(false);
     const [commentBody, setCommentBody] = useState('');
     const [isSavingComment, setIsSavingComment] = useState(false);
-    const supabase = createClient();
+    const supabase = useMemo(() => createClient(), []);
 
     if (!mounted) return null;
 

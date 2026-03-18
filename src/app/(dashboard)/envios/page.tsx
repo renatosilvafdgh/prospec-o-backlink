@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
     Mail,
     Calendar,
@@ -22,7 +22,7 @@ export default function EnviosPage() {
     const [currentPage, setCurrentPage] = useState(0);
     const [totalCount, setTotalCount] = useState(0);
     const pageSize = 30;
-    const supabase = createClient();
+    const supabase = useMemo(() => createClient(), []);
 
     useEffect(() => {
         setMounted(true);
