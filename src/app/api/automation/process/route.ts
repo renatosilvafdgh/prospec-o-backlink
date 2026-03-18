@@ -267,7 +267,22 @@ export async function GET(request: Request) {
                 console.log(`[Automação] E-mail enviado com sucesso para ${site.url}`);
             } catch (err: any) {
                 console.error(`Erro processar site ${site.url}:`, err);
-                await supabase.from('email_logs').insert({ user_id: campanha.user_id, campanha_id: campanha.id, site_id: site.id, status_envio: 'erro: ' + err.message, tipo: 'primeiro_contato' });
+                
+                // IMPORTANTE: Se houver erro no envio, marcamos o site para não travar a fila
+                // Caso contrário, o mesmo site "lead" será selecionado repetidamente no próximo CRON
+                await supabase.from('sites').update({
+                    status_contato: 'erro_envio',
+                    ultimo_contato: new Date().toISOString(),
+                    observacoes: (site.observacoes || '') + ` [Erro Automação: ${err.message}]`
+                }).eq('id', site.id);
+
+                await supabase.from('email_logs').insert({ 
+                    user_id: campanha.user_id, 
+                    campanha_id: campanha.id, 
+                    site_id: site.id, 
+                    status_envio: 'erro: ' + err.message, 
+                    tipo: site.isFollowup ? 'followup' : 'primeiro_contato' 
+                });
             }
         }
 

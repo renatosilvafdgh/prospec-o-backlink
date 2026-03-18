@@ -540,10 +540,15 @@ export default function SitesPage() {
                                                         site.status_contato === 'fechado' ? 'bg-indigo-500/10 text-indigo-500' :
                                                             site.status_contato === 'recusado' ? 'bg-rose-500/10 text-rose-500' :
                                                                 site.status_contato === 'invalid' ? 'bg-slate-500/10 text-slate-500 border border-slate-200' :
-                                                                    'bg-blue-500/10 text-blue-500'
+                                                                    site.status_contato === 'erro_envio' ? 'bg-rose-600/10 text-rose-600 border border-rose-200' :
+                                                                        site.status_contato === 'somente_pago' ? 'bg-purple-600/10 text-purple-600 border border-purple-200' :
+                                                                            'bg-blue-500/10 text-blue-500'
                                                     }`}>
                                                     {site.status_contato === 'lead' || !site.status_contato ? 'Não contatado' :
-                                                        site.status_contato === 'invalid' ? 'E-mail Inválido' : site.status_contato}
+                                                        site.status_contato === 'invalid' ? 'E-mail Inválido' : 
+                                                            site.status_contato === 'erro_envio' ? 'Erro no Envio' :
+                                                                site.status_contato === 'somente_pago' ? 'Somente Pago' :
+                                                                    site.status_contato}
                                                 </span>
                                                 {site.status_contato === 'contatado' && (
                                                     <button 
