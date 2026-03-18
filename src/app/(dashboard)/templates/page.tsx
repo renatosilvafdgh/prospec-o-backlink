@@ -31,6 +31,8 @@ export default function TemplatesPage() {
         setMounted(true);
     }, []);
 
+    if (!mounted) return null;
+
     const contentRef = useRef<HTMLTextAreaElement>(null);
     const subjectRef = useRef<HTMLInputElement>(null);
     const contentBackdropRef = useRef<HTMLDivElement>(null);

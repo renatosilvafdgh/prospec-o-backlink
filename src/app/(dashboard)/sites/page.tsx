@@ -40,6 +40,8 @@ export default function SitesPage() {
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    if (!mounted) return null;
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [newSite, setNewSite] = useState({
@@ -80,8 +82,9 @@ export default function SitesPage() {
     const [sortField, setSortField] = useState<string>('created_at');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [statusFilter, setStatusFilter] = useState<string>('todos');
-
     const supabase = useMemo(() => createClient(), []);
+
+    if (!mounted) return null;
 
     useEffect(() => {
         fetchSites(0);

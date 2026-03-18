@@ -60,6 +60,8 @@ export default function InboxPage() {
     const [isSavingComment, setIsSavingComment] = useState(false);
     const supabase = createClient();
 
+    if (!mounted) return null;
+
     useEffect(() => {
         fetchResponses();
     }, []);

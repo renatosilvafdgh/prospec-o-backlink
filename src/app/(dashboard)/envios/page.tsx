@@ -28,6 +28,8 @@ export default function EnviosPage() {
         setMounted(true);
     }, []);
 
+    if (!mounted) return null;
+
     useEffect(() => {
         fetchLogs(currentPage);
     }, [currentPage]);

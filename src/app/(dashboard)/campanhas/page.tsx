@@ -21,6 +21,8 @@ export default function CampanhasPage() {
         setMounted(true);
     }, []);
 
+    if (!mounted) return null;
+
     const [newCampanha, setNewCampanha] = useState({
         nome_campanha: '',
         emails_por_dia: 50,
