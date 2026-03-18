@@ -1,6 +1,14 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Mail } from 'lucide-react';
 
 export default function LoginPage() {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => { setMounted(true); }, []);
+
+    if (!mounted) return null;
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-background px-4">
             <div className="w-full max-w-md space-y-8 p-8 rounded-3xl glass border border-border shadow-2xl animate-in zoom-in duration-300">
