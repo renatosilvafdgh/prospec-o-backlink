@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Mail, Zap, Target, BarChart3, Shield, Clock, ArrowRight, CheckCircle2, Inbox, Database } from 'lucide-react';
 
 const features = [
@@ -77,6 +78,11 @@ const GoogleLogo = () => (
 );
 
 export default function LandingPage() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  if (!mounted) return null;
+
   return (
     <div style={{ backgroundColor: '#f8fafc', color: '#0f172a', fontFamily: 'Inter, system-ui, sans-serif' }} className="min-h-screen overflow-x-hidden">
 
