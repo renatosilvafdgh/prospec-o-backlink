@@ -10,7 +10,7 @@ export default function LoginPage() {
     if (!mounted) return null;
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="min-h-screen flex items-center justify-center bg-background px-4" suppressHydrationWarning>
             <div className="w-full max-w-md space-y-8 p-8 rounded-3xl glass border border-border shadow-2xl animate-in zoom-in duration-300">
                 <div className="text-center">
                     <div className="mx-auto w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">

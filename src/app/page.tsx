@@ -84,7 +84,7 @@ export default function LandingPage() {
   if (!mounted) return null;
 
   return (
-    <div style={{ backgroundColor: '#f8fafc', color: '#0f172a', fontFamily: 'Inter, system-ui, sans-serif' }} className="min-h-screen overflow-x-hidden">
+    <div style={{ backgroundColor: '#f8fafc', color: '#0f172a', fontFamily: 'Inter, system-ui, sans-serif' }} className="min-h-screen overflow-x-hidden" suppressHydrationWarning>
 
       {/* Navbar */}
       <nav style={{ backgroundColor: 'rgba(248,250,252,0.9)', borderBottom: '1px solid #e2e8f0', backdropFilter: 'blur(12px)' }} className="fixed top-0 w-full z-50">
