@@ -291,7 +291,8 @@ export default function SitesPage() {
                 .from('sites')
                 .update({
                     campanha_id: bulkCampanhaId || null,
-                    user_id: user.id
+                    user_id: user.id,
+                    status_contato: 'lead' // Garante que novos sites entrem na fila
                 })
                 .in('id', selectedSites);
             if (error) throw error;

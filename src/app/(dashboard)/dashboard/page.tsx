@@ -38,10 +38,11 @@ export default function DashboardPage() {
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', user.id);
 
-            // 2. E-mails enviados hoje (Somente Sucesso)
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const isoToday = today.toISOString();
+            // 2. E-mails enviados hoje (Somente Sucesso) - Sincronizado com Brasília (BRT)
+            const now = new Date();
+            const brtDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+            brtDate.setHours(0, 0, 0, 0);
+            const isoToday = brtDate.toISOString();
 
             const { count: sentToday } = await supabase
                 .from('email_logs')
