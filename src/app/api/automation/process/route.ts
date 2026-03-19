@@ -66,9 +66,15 @@ export async function GET(request: Request) {
             }
 
             const now = new Date();
-            const brtDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-            brtDate.setHours(0, 0, 0, 0);
-            const inicioDiaBRT = brtDate.toISOString();
+            // 4. Calcular início do dia em Brasília (GMT-3)
+            const formatter = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'America/Sao_Paulo',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+            const brtDateString = formatter.format(new Date()); // Retorna "YYYY-MM-DD" no fuso de SP
+            const inicioDiaBRT = `${brtDateString}T03:00:00.000Z`; // 00:00 BRT é 03:00 UTC
 
             const { data: logsHoje } = await supabase
                 .from('email_logs')

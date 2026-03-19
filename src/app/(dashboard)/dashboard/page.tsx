@@ -39,10 +39,14 @@ export default function DashboardPage() {
                 .eq('user_id', user.id);
 
             // 2. E-mails enviados hoje (Somente Sucesso) - Sincronizado com Brasília (BRT)
-            const now = new Date();
-            const brtDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-            brtDate.setHours(0, 0, 0, 0);
-            const isoToday = brtDate.toISOString();
+            const formatter = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'America/Sao_Paulo',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+            const brtDateString = formatter.format(new Date()); 
+            const isoToday = `${brtDateString}T03:00:00.000Z`;
 
             const { count: sentToday } = await supabase
                 .from('email_logs')
