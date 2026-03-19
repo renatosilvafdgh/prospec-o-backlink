@@ -32,16 +32,10 @@ function cn(...inputs: any[]) {
 }
 
 export default function SitesPage() {
-    const [mounted, setMounted] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [sites, setSites] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        setMounted(true);
-    }, []);
-
-    if (!mounted) return null;
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [newSite, setNewSite] = useState({
@@ -83,8 +77,6 @@ export default function SitesPage() {
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [statusFilter, setStatusFilter] = useState<string>('todos');
     const supabase = useMemo(() => createClient(), []);
-
-    if (!mounted) return null;
 
     useEffect(() => {
         fetchSites(0);

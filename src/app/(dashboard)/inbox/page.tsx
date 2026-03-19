@@ -33,16 +33,12 @@ function cn(...inputs: any[]) {
 }
 
 export default function InboxPage() {
-    const [mounted, setMounted] = useState(false);
     const [responses, setResponses] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [replyingTo, setReplyingTo] = useState<any | null>(null);
 
-    useEffect(() => {
-        setMounted(true);
-    }, []);
     const [availableThreads, setAvailableThreads] = useState<any[]>([]);
     const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
     const [threadMessages, setThreadMessages] = useState<any[]>([]);
@@ -60,7 +56,6 @@ export default function InboxPage() {
     const [isSavingComment, setIsSavingComment] = useState(false);
     const supabase = useMemo(() => createClient(), []);
 
-    if (!mounted) return null;
 
     useEffect(() => {
         fetchResponses();
@@ -562,7 +557,7 @@ export default function InboxPage() {
             )}
 
             {/* Modal renderizado via Portal para escapar do transform CSS do container */}
-            {mounted && replyingTo && createPortal(
+            {replyingTo && createPortal(
                 <div style={{ position: 'fixed', inset: 0, zIndex: 9999, overflowY: 'auto', backgroundColor: 'rgba(2,6,23,0.65)', backdropFilter: 'blur(8px)' }}>
                     <div style={{ display: 'flex', minHeight: '100%', alignItems: 'center', justifyContent: 'center', padding: '32px 16px' }}>
                         <div style={{ width: '100%', maxWidth: 800, backgroundColor: '#fff', borderRadius: 28, boxShadow: '0 24px 60px rgba(0,0,0,0.25)', overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 80px)' }}>

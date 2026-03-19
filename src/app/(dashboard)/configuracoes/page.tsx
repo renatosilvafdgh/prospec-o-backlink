@@ -12,10 +12,7 @@ import {
 } from 'lucide-react';
 
 export default function ConfigPage() {
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => { setMounted(true); }, []);
 
-    if (!mounted) return null;
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">

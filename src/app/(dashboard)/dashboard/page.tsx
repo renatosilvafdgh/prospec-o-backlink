@@ -19,11 +19,9 @@ export default function DashboardPage() {
         { label: 'Taxa de Resposta', value: '0%', icon: TrendingUp, color: 'text-amber-500' },
     ]);
     const [loading, setLoading] = useState(true);
-    const [mounted, setMounted] = useState(false);
     const supabase = createClient();
 
     useEffect(() => {
-        setMounted(true);
         fetchStats();
     }, []);
 
@@ -83,8 +81,6 @@ export default function DashboardPage() {
             setLoading(false);
         }
     }
-
-    if (!mounted) return null;
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
