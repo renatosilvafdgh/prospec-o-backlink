@@ -9,10 +9,8 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const secret = searchParams.get('secret');
 
-    // Usaremos o admin client para automações para ignorar RLS e ver dados de todos os usuários
     const supabase = createAdminClient();
 
-    // 1. Validar Secret ou Autenticação de Usuário
     const isValidSecret = secret && process.env.CRON_SECRET && secret.trim() === process.env.CRON_SECRET.trim();
 
     if (!isValidSecret) {
@@ -27,7 +25,6 @@ export async function GET(request: Request) {
     }
 
     try {
-        // 2. Buscar todas as campanhas ativas
         const { data: campanhas, error: campError } = await supabase
             .from('campanhas')
             .select(`
@@ -39,12 +36,22 @@ export async function GET(request: Request) {
 
         if (campError) throw campError;
 
-        console.log(`[Automação] Iniciando processamento de ${campanhas?.length || 0} campanhas ativas.`);
+        console.log(`[Automação] Iniciando processamento de ${campanhas?.length || 0} campanhas.`);
 
         let totalProcessed = 0;
+        const results: any[] = [];
 
         for (const campanha of (campanhas || [])) {
-            // 3. Obter tokens do usuário dono da campanha
+            let logDetails = {
+                id: campanha.id,
+                nome: campanha.nome_campanha,
+                meta: campanha.emails_por_dia,
+                enviados_hoje: 0,
+                status: 'pendente',
+                motivo: '',
+                processados: 0
+            };
+
             const { data: tokens, error: tokenError } = await supabase
                 .from('users_tokens')
                 .select('*')
@@ -52,11 +59,12 @@ export async function GET(request: Request) {
                 .single();
 
             if (tokenError || !tokens) {
-                console.log(`[Automação] User ${campanha.user_id} sem tokens Gmail ou erro: ${tokenError?.message}. Pulando.`);
+                logDetails.status = 'pulo';
+                logDetails.motivo = 'Sem tokens Gmail';
+                results.push(logDetails);
                 continue;
             }
 
-            // 4. Calcular limite de hoje para esta campanha (Fuso Horário Brasília - BRT)
             const now = new Date();
             const brtDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
             brtDate.setHours(0, 0, 0, 0);
@@ -71,15 +79,15 @@ export async function GET(request: Request) {
 
             const jaEnviadosHoje = logsHoje?.length || 0;
             const limiteRestante = Math.max(0, campanha.emails_por_dia - jaEnviadosHoje);
-
-            console.log(`-> [Campanha ${campanha.id}] Meta: ${campanha.emails_por_dia}. Enviados hoje (desde ${inicioDiaBRT}): ${jaEnviadosHoje}. Restante: ${limiteRestante}`);
+            logDetails.enviados_hoje = jaEnviadosHoje;
 
             if (limiteRestante <= 0) {
-                console.log(`-> [Limite] Meta atingida para a campanha ${campanha.id}.`);
+                logDetails.status = 'limite_atingido';
+                logDetails.motivo = `Meta diária de ${campanha.emails_por_dia} alcançada`;
+                results.push(logDetails);
                 continue;
             }
 
-            // 5. Buscar sites para FOLLOW-UP primeiro
             const { data: sitesFollowup } = await supabase
                 .from('sites')
                 .select('*')
@@ -88,7 +96,6 @@ export async function GET(request: Request) {
                 .lte('proximo_followup', now.toISOString())
                 .limit(limiteRestante);
 
-            // 6. Buscar sites para CONTATO INICIAL
             const limitLeads = Math.max(0, limiteRestante - (sitesFollowup?.length || 0));
             const { data: sitesLead } = limitLeads > 0 ? await supabase
                 .from('sites')
@@ -103,11 +110,12 @@ export async function GET(request: Request) {
             ];
 
             if (allSites.length === 0) {
-                console.log(`-> [Fila] Sem sites pendentes para a campanha ${campanha.id}`);
+                logDetails.status = 'sem_sites';
+                logDetails.motivo = 'Nenhum lead ou followup pendente';
+                results.push(logDetails);
                 continue;
             }
 
-            // 6.5 Verificar intervalo (Apenas se Intervalo Humano estiver ON)
             if (campanha.usar_intervalo_humano) {
                 const { data: ultimoEnvio } = await supabase
                     .from('email_logs')
@@ -120,33 +128,26 @@ export async function GET(request: Request) {
 
                 if (ultimoEnvio) {
                     const tempoPassadoS = (Date.now() - new Date(ultimoEnvio.data_envio).getTime()) / 1000;
-                    const intervaloRec = Math.floor(Math.random() * (600 - 180 + 1) + 180);
-                    if (tempoPassadoS < intervaloRec) {
-                        console.log(`-> [Humanizado] Aguardando intervalo de seg ${intervaloRec}s.`);
+                    const minIntervalo = 180; // 3 min
+                    if (tempoPassadoS < minIntervalo) {
+                        logDetails.status = 'aguardando_intervalo';
+                        logDetails.motivo = `Intervalo humano (passaram ${Math.floor(tempoPassadoS)}s)`;
+                        results.push(logDetails);
                         continue; 
                     }
                 }
             }
 
-            // 6.7 Blocklist
-            const { data: blocklist } = await supabase
-                .from('global_blocklist')
-                .select('email')
-                .eq('user_id', campanha.user_id);
+            const { data: blocklist } = await supabase.from('global_blocklist').select('email').eq('user_id', campanha.user_id);
             const blockedEmails = new Set((blocklist || []).map(b => b.email.toLowerCase().trim()));
 
-            // 7. LOTE (Batch)
             const batchSize = campanha.usar_intervalo_humano ? 1 : 5;
             const sitesToProcess = allSites.slice(0, batchSize);
 
             for (const site of sitesToProcess) {
                 try {
                     const cleanUrl = site.url.replace(/https?:\/\//, '').split('/')[0];
-                    const placeholders = {
-                        '{site}': cleanUrl,
-                        '{url}': site.url,
-                        '{nome}': cleanUrl.split('.')[0]
-                    };
+                    const placeholders = { '{site}': cleanUrl, '{url}': site.url, '{nome}': cleanUrl.split('.')[0] };
 
                     let template = null;
                     if (site.isFollowup) {
@@ -162,11 +163,7 @@ export async function GET(request: Request) {
                         template = campanha.template_inicial;
                     }
 
-                    if (!template || !site.email) {
-                        console.log(`[Pulo] Site ${site.url} ignorado.`);
-                        continue;
-                    }
-
+                    if (!template || !site.email) continue;
                     if (blockedEmails.has(site.email.toLowerCase().trim())) {
                         await supabase.from('sites').update({ status_contato: 'invalid', ultimo_contato: new Date().toISOString() }).eq('id', site.id);
                         continue;
@@ -224,26 +221,18 @@ export async function GET(request: Request) {
                     }).eq('id', site.id);
 
                     totalProcessed++;
-                    console.log(`✅ [Sucesso] E-mail para ${site.url}`);
-
-                    if (sitesToProcess.length > 1) {
-                        await new Promise(r => setTimeout(r, 1500));
-                    }
+                    logDetails.processados++;
+                    if (sitesToProcess.length > 1) await new Promise(r => setTimeout(r, 1500));
                 } catch (err: any) {
                     console.error(`❌ [Erro] ${site.url}:`, err);
                     await supabase.from('sites').update({ status_contato: 'erro_envio', ultimo_contato: new Date().toISOString() }).eq('id', site.id);
-                    await supabase.from('email_logs').insert({ 
-                        user_id: campanha.user_id, 
-                        campanha_id: campanha.id, 
-                        site_id: site.id, 
-                        status_envio: 'erro: ' + err.message, 
-                        tipo: site.isFollowup ? 'followup' : 'primeiro_contato' 
-                    });
                 }
             }
+            logDetails.status = 'sucesso';
+            results.push(logDetails);
         }
 
-        return NextResponse.json({ success: true, totalProcessed });
+        return NextResponse.json({ success: true, totalProcessed, details: results });
 
     } catch (error: any) {
         console.error('Erro na automação:', error);
