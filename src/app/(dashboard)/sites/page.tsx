@@ -46,7 +46,7 @@ export default function SitesPage() {
         nome_2: '',
         email_3: '',
         nome_3: '',
-        da: '',
+        domain_authority: '',
         facebook: '',
         instagram: '',
         linkedin: '',
@@ -190,7 +190,7 @@ export default function SitesPage() {
                     nome_2: newSite.nome_2,
                     email_3: newSite.email_3,
                     nome_3: newSite.nome_3,
-                    da: newSite.da ? parseInt(newSite.da) : null,
+                    domain_authority: newSite.domain_authority ? parseInt(newSite.domain_authority) : null,
                     facebook: newSite.facebook,
                     instagram: newSite.instagram,
                     linkedin: newSite.linkedin,
@@ -210,7 +210,7 @@ export default function SitesPage() {
                 nome_2: '',
                 email_3: '',
                 nome_3: '',
-                da: '',
+                domain_authority: '',
                 facebook: '',
                 instagram: '',
                 linkedin: '',
@@ -257,7 +257,7 @@ export default function SitesPage() {
                     nome_2: editingSite.nome_2,
                     email_3: editingSite.email_3,
                     nome_3: editingSite.nome_3,
-                    da: editingSite.da ? parseInt(String(editingSite.da)) : null,
+                    domain_authority: editingSite.domain_authority ? parseInt(String(editingSite.domain_authority)) : null,
                     facebook: editingSite.facebook,
                     instagram: editingSite.instagram,
                     linkedin: editingSite.linkedin,
@@ -508,7 +508,7 @@ export default function SitesPage() {
                                             URL {sortField === 'url' && (sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                                         </div>
                                     </th>
-                                    <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-center cursor-pointer hover:bg-muted transition-colors" onClick={() => handleSort('da')}>AS</th>
+                                    <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-center cursor-pointer hover:bg-muted transition-colors" onClick={() => handleSort('domain_authority')}>AS</th>
                                     <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Categoria</th>
                                     <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted transition-colors" onClick={() => handleSort('status_contato')}>Status</th>
                                 </tr>
@@ -529,10 +529,10 @@ export default function SitesPage() {
                                             {site.campanha && <span className="text-[10px] bg-primary/5 text-indigo-600 px-1.5 py-0.5 rounded border border-primary/10 mt-0.5 inline-block font-medium">{site.campanha.nome_campanha}</span>}
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-bold ${(site.da ?? 0) >= 40 ? 'bg-emerald-500/10 text-emerald-500' :
-                                                (site.da ?? 0) >= 20 ? 'bg-indigo-500/10 text-indigo-500' : 'bg-slate-500/10 text-slate-500'
+                                            <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-bold ${(site.domain_authority ?? 0) >= 40 ? 'bg-emerald-500/10 text-emerald-500' :
+                                                (site.domain_authority ?? 0) >= 20 ? 'bg-indigo-500/10 text-indigo-500' : 'bg-slate-500/10 text-slate-500'
                                                 }`}>
-                                                {site.da ?? '—'}
+                                                {site.domain_authority ?? '—'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-sm">{site.categoria || '—'}</td>
@@ -633,7 +633,7 @@ export default function SitesPage() {
                                             <h4 className="text-[10px] font-bold uppercase text-white tracking-[0.2em] ml-1">Métricas de Autoridade</h4>
                                             <div className="space-y-2">
                                                 <label className="text-[10px] font-bold text-white uppercase ml-1">AS (Authority Score)</label>
-                                                <input type="number" className="w-full px-4 py-3 rounded-2xl bg-[#1e293b] border border-slate-700/50 text-white text-center text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-sm" value={editingSite ? (editingSite.da || '') : newSite.da} onChange={e => editingSite ? setEditingSite({ ...editingSite, da: e.target.value }) : setNewSite({ ...newSite, da: e.target.value })} placeholder="ex: 45" />
+                                                <input type="number" className="w-full px-4 py-3 rounded-2xl bg-[#1e293b] border border-slate-700/50 text-white text-center text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-sm" value={editingSite ? (editingSite.domain_authority || '') : newSite.domain_authority} onChange={e => editingSite ? setEditingSite({ ...editingSite, domain_authority: e.target.value }) : setNewSite({ ...newSite, domain_authority: e.target.value })} placeholder="ex: 45" />
                                             </div>
                                         </div>
 
@@ -752,8 +752,8 @@ export default function SitesPage() {
                                         <div>
                                             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80 mb-4 ml-1">Métrica de Autoridade</p>
                                             <div className="grid grid-cols-1">
-                                                <div className={`border rounded-2xl p-6 text-center transition-all ${(drawerSite.da ?? 0) >= 40 ? 'bg-emerald-950/30 border-emerald-500/30' : (drawerSite.da ?? 0) >= 20 ? 'bg-indigo-950/30 border-indigo-500/30' : 'bg-slate-900/50 border-slate-700'}`}>
-                                                    <p className={`text-4xl font-black ${(drawerSite.da ?? 0) >= 40 ? 'text-emerald-400' : (drawerSite.da ?? 0) >= 20 ? 'text-indigo-400' : 'text-white'}`}>{drawerSite.da ?? '—'}</p>
+                                                <div className={`border rounded-2xl p-6 text-center transition-all ${(drawerSite.domain_authority ?? 0) >= 40 ? 'bg-emerald-950/30 border-emerald-500/30' : (drawerSite.domain_authority ?? 0) >= 20 ? 'bg-indigo-950/30 border-indigo-500/30' : 'bg-slate-900/50 border-slate-700'}`}>
+                                                    <p className={`text-4xl font-black ${(drawerSite.domain_authority ?? 0) >= 40 ? 'text-emerald-400' : (drawerSite.domain_authority ?? 0) >= 20 ? 'text-indigo-400' : 'text-white'}`}>{drawerSite.domain_authority ?? '—'}</p>
                                                     <p className="text-xs mt-2 font-bold text-white uppercase tracking-wider">AS (Authority Score)</p>
                                                 </div>
                                             </div>
