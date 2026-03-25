@@ -101,7 +101,10 @@ export default function SitesPage() {
             let countQuery = supabase.from('sites').select('*', { count: 'exact', head: true });
 
             // Filtro de dono
-            countQuery = countQuery.or(`user_id.eq.${user.id},user_id.is.null`);
+            countQuery = countQuery.or(`user_id.eq.${user.id},user_id.is.null`)
+                .not('url', 'is', null)
+                .neq('url', '')
+                .neq('url', ' ');
 
             // Filtro de busca
             if (search.trim()) {
@@ -123,7 +126,10 @@ export default function SitesPage() {
             let dataQuery = supabase.from('sites').select(`*, campanha:campanhas(nome_campanha)`);
 
             // Aplicar os mesmos filtros
-            dataQuery = dataQuery.or(`user_id.eq.${user.id},user_id.is.null`);
+            dataQuery = dataQuery.or(`user_id.eq.${user.id},user_id.is.null`)
+                .not('url', 'is', null)
+                .neq('url', '')
+                .neq('url', ' ');
             if (search.trim()) {
                 dataQuery = dataQuery.or(`url.ilike.%${search.trim()}%,email.ilike.%${search.trim()}%`);
             }
@@ -299,6 +305,23 @@ export default function SitesPage() {
         }
     }
 
+    async function handleCleanup() {
+        if (!confirm('Deseja excluir permanentemente todos os sites sem URL? (Isso pode acontecer se o seu upload tinha linhas em branco)')) return;
+        try {
+            setIsSaving(true);
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            const { error } = await supabase.from('sites').delete().or('url.is.null,url.eq."",url.eq." "').eq('user_id', user.id);
+            if (error) throw error;
+            alert('Sites vazios removidos com sucesso!');
+            fetchSites(0);
+        } catch (error: any) {
+            alert('Erro ao limpar sites: ' + error.message);
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
     async function handleMarkAsReplied(ids: string | string[]) {
         const targetIds = Array.isArray(ids) ? ids : [ids];
         if (targetIds.length === 0) return;
@@ -364,6 +387,14 @@ export default function SitesPage() {
                     >
                         <Plus className="w-4 h-4" />
                         Adicionar Site
+                    </button>
+                    <button
+                        onClick={handleCleanup}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600/10 text-rose-600 border border-rose-600/20 hover:bg-rose-600/20 transition-all font-medium"
+                        title="Remover sites sem URL"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                        Limpar
                     </button>
                 </div>
             </div>
