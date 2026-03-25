@@ -47,8 +47,6 @@ export default function SitesPage() {
         email_3: '',
         nome_3: '',
         da: '',
-        pa: '',
-        spam: '',
         facebook: '',
         instagram: '',
         linkedin: '',
@@ -187,8 +185,6 @@ export default function SitesPage() {
                     email_3: newSite.email_3,
                     nome_3: newSite.nome_3,
                     da: newSite.da ? parseInt(newSite.da) : null,
-                    pa: newSite.pa ? parseInt(newSite.pa) : null,
-                    spam: newSite.spam ? parseInt(newSite.spam) : null,
                     facebook: newSite.facebook,
                     instagram: newSite.instagram,
                     linkedin: newSite.linkedin,
@@ -209,8 +205,6 @@ export default function SitesPage() {
                 email_3: '',
                 nome_3: '',
                 da: '',
-                pa: '',
-                spam: '',
                 facebook: '',
                 instagram: '',
                 linkedin: '',
@@ -258,8 +252,6 @@ export default function SitesPage() {
                     email_3: editingSite.email_3,
                     nome_3: editingSite.nome_3,
                     da: editingSite.da ? parseInt(String(editingSite.da)) : null,
-                    pa: editingSite.pa ? parseInt(String(editingSite.pa)) : null,
-                    spam: editingSite.spam ? parseInt(String(editingSite.spam)) : null,
                     facebook: editingSite.facebook,
                     instagram: editingSite.instagram,
                     linkedin: editingSite.linkedin,
@@ -485,9 +477,7 @@ export default function SitesPage() {
                                             URL {sortField === 'url' && (sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                                         </div>
                                     </th>
-                                    <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-center cursor-pointer hover:bg-muted transition-colors" onClick={() => handleSort('da')}>DA</th>
-                                    <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-center cursor-pointer hover:bg-muted transition-colors" onClick={() => handleSort('pa')}>PA</th>
-                                    <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-center cursor-pointer hover:bg-muted transition-colors" onClick={() => handleSort('spam')}>Spam</th>
+                                    <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-center cursor-pointer hover:bg-muted transition-colors" onClick={() => handleSort('da')}>AS</th>
                                     <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Categoria</th>
                                     <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted transition-colors" onClick={() => handleSort('status_contato')}>Status</th>
                                 </tr>
@@ -512,20 +502,6 @@ export default function SitesPage() {
                                                 (site.da ?? 0) >= 20 ? 'bg-indigo-500/10 text-indigo-500' : 'bg-slate-500/10 text-slate-500'
                                                 }`}>
                                                 {site.da ?? '—'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-bold ${(site.pa ?? 0) >= 40 ? 'bg-violet-500/10 text-violet-500' :
-                                                (site.pa ?? 0) >= 20 ? 'bg-indigo-500/10 text-indigo-500' : 'bg-slate-500/10 text-slate-500'
-                                                }`}>
-                                                {site.pa ?? '—'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className={`inline-flex items-center justify-center px-2 py-1 rounded-lg text-xs font-bold ${(site.spam ?? 0) >= 30 ? 'bg-rose-500/10 text-rose-500' :
-                                                (site.spam ?? 0) >= 10 ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'
-                                                }`}>
-                                                {site.spam != null ? `${site.spam}%` : '—'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-sm">{site.categoria || '—'}</td>
@@ -624,19 +600,9 @@ export default function SitesPage() {
                                     <div className="space-y-4">
                                         <div className="p-5 rounded-3xl bg-slate-900/50 border border-slate-700/30 space-y-4 shadow-inner">
                                             <h4 className="text-[10px] font-bold uppercase text-white tracking-[0.2em] ml-1">Métricas de Autoridade</h4>
-                                            <div className="grid grid-cols-3 gap-3">
-                                                <div className="space-y-1.5">
-                                                    <label className="text-[10px] font-bold text-white uppercase ml-1">DA</label>
-                                                    <input type="number" className="w-full px-2 py-2.5 rounded-xl bg-[#1e293b] border border-slate-700/50 text-white text-center text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all" value={editingSite ? (editingSite.da || '') : newSite.da} onChange={e => editingSite ? setEditingSite({ ...editingSite, da: e.target.value }) : setNewSite({ ...newSite, da: e.target.value })} />
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <label className="text-[10px] font-bold text-white uppercase ml-1">PA</label>
-                                                    <input type="number" className="w-full px-2 py-2.5 rounded-xl bg-[#1e293b] border border-slate-700/50 text-white text-center text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all" value={editingSite ? (editingSite.pa || '') : newSite.pa} onChange={e => editingSite ? setEditingSite({ ...editingSite, pa: e.target.value }) : setNewSite({ ...newSite, pa: e.target.value })} />
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <label className="text-[10px] font-bold text-white uppercase ml-1">Spam %</label>
-                                                    <input type="number" className="w-full px-2 py-2.5 rounded-xl bg-[#1e293b] border border-slate-700/50 text-white text-center text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all" value={editingSite ? (editingSite.spam || '') : newSite.spam} onChange={e => editingSite ? setEditingSite({ ...editingSite, spam: e.target.value }) : setNewSite({ ...newSite, spam: e.target.value })} />
-                                                </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-bold text-white uppercase ml-1">AS (Authority Score)</label>
+                                                <input type="number" className="w-full px-4 py-3 rounded-2xl bg-[#1e293b] border border-slate-700/50 text-white text-center text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-sm" value={editingSite ? (editingSite.da || '') : newSite.da} onChange={e => editingSite ? setEditingSite({ ...editingSite, da: e.target.value }) : setNewSite({ ...newSite, da: e.target.value })} placeholder="ex: 45" />
                                             </div>
                                         </div>
 
@@ -753,21 +719,11 @@ export default function SitesPage() {
                                     {/* Authority Metrics */}
                                     <div className="space-y-6">
                                         <div>
-                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80 mb-4 ml-1">Métricas de Autoridade</p>
-                                            <div className="grid grid-cols-3 gap-4">
-                                                <div className={`border rounded-2xl p-4 text-center transition-all ${(drawerSite.da ?? 0) >= 40 ? 'bg-emerald-950/30 border-emerald-500/30' : (drawerSite.da ?? 0) >= 20 ? 'bg-indigo-950/30 border-indigo-500/30' : 'bg-slate-900/50 border-slate-700'}`}>
-                                                    <p className={`text-3xl font-black ${(drawerSite.da ?? 0) >= 40 ? 'text-emerald-400' : (drawerSite.da ?? 0) >= 20 ? 'text-indigo-400' : 'text-white'}`}>{drawerSite.da ?? '—'}</p>
-                                                    <p className="text-[10px] mt-1 font-bold text-white uppercase tracking-wider">Domain Auth</p>
-                                                </div>
-                                                <div className={`border rounded-2xl p-4 text-center transition-all ${(drawerSite.pa ?? 0) >= 40 ? 'bg-violet-950/30 border-violet-500/30' : (drawerSite.pa ?? 0) >= 20 ? 'bg-indigo-950/30 border-indigo-500/30' : 'bg-slate-900/50 border-slate-700'}`}>
-                                                    <p className={`text-3xl font-black ${(drawerSite.pa ?? 0) >= 40 ? 'text-violet-400' : (drawerSite.pa ?? 0) >= 20 ? 'text-indigo-400' : 'text-white'}`}>{drawerSite.pa ?? '—'}</p>
-                                                    <p className="text-[10px] mt-1 font-bold text-white uppercase tracking-wider">Page Auth</p>
-                                                </div>
-                                                <div className={`border rounded-2xl p-4 text-center transition-all ${(drawerSite.spam ?? 0) >= 30 ? 'bg-rose-950/30 border-rose-500/30' : (drawerSite.spam ?? 0) >= 10 ? 'bg-amber-950/30 border-amber-500/30' : 'bg-emerald-950/30 border-emerald-500/30'}`}>
-                                                    <p className={`text-3xl font-black ${(drawerSite.spam ?? 0) >= 30 ? 'text-rose-400' : (drawerSite.spam ?? 0) >= 10 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                                                        {drawerSite.spam != null ? `${drawerSite.spam}%` : '—'}
-                                                    </p>
-                                                    <p className="text-[10px] mt-1 font-bold text-white uppercase tracking-wider">Spam Score</p>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80 mb-4 ml-1">Métrica de Autoridade</p>
+                                            <div className="grid grid-cols-1">
+                                                <div className={`border rounded-2xl p-6 text-center transition-all ${(drawerSite.da ?? 0) >= 40 ? 'bg-emerald-950/30 border-emerald-500/30' : (drawerSite.da ?? 0) >= 20 ? 'bg-indigo-950/30 border-indigo-500/30' : 'bg-slate-900/50 border-slate-700'}`}>
+                                                    <p className={`text-4xl font-black ${(drawerSite.da ?? 0) >= 40 ? 'text-emerald-400' : (drawerSite.da ?? 0) >= 20 ? 'text-indigo-400' : 'text-white'}`}>{drawerSite.da ?? '—'}</p>
+                                                    <p className="text-xs mt-2 font-bold text-white uppercase tracking-wider">AS (Authority Score)</p>
                                                 </div>
                                             </div>
                                         </div>
