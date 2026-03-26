@@ -169,8 +169,10 @@ export async function GET(request: Request) {
                         template = campanha.template_inicial;
                     }
 
-                    if (!template || !site.email) continue;
-                    if (blockedEmails.has(site.email.toLowerCase().trim())) {
+                    const targetEmail = site.email_index === 1 ? site.email_2 : (site.email_index === 2 ? site.email_3 : site.email);
+
+                    if (!template || !targetEmail) continue;
+                    if (blockedEmails.has(targetEmail.toLowerCase().trim())) {
                         await supabase.from('sites').update({ status_contato: 'invalid', ultimo_contato: new Date().toISOString() }).eq('id', site.id);
                         continue;
                     }
@@ -196,7 +198,7 @@ export async function GET(request: Request) {
                     const resEmail = await sendEmail({
                         accessToken: tokens.access_token,
                         refreshToken: tokens.refresh_token,
-                        to: site.email,
+                        to: targetEmail,
                         subject,
                         body: trackedBody,
                         threadId: site.thread_id
@@ -214,7 +216,38 @@ export async function GET(request: Request) {
                         const proximoPasso = sequencia[proximoIndex];
                         dataProximoFollowup = new Date(Date.now() + 86400000 * proximoPasso.dias).toISOString();
                     } else {
-                        proximoStatus = 'em_aguardo';
+                        // Se acabaram os followups, tenta o próximo e-mail se existir
+                        if (site.email_index === 0 && site.email_2) {
+                            proximoStatus = 'lead';
+                            const updateData = {
+                                email_index: 1,
+                                status_contato: 'lead',
+                                followup_index: 0,
+                                thread_id: null,
+                                proximo_followup: null,
+                                ultimo_contato: new Date().toISOString()
+                            };
+                            await supabase.from('sites').update(updateData).eq('id', site.id);
+                            totalProcessed++;
+                            logDetails.processados++;
+                            continue; // Pula para o próximo site no loop externo
+                        } else if (site.email_index === 1 && site.email_3) {
+                            proximoStatus = 'lead';
+                            const updateData = {
+                                email_index: 2,
+                                status_contato: 'lead',
+                                followup_index: 0,
+                                thread_id: null,
+                                proximo_followup: null,
+                                ultimo_contato: new Date().toISOString()
+                            };
+                            await supabase.from('sites').update(updateData).eq('id', site.id);
+                            totalProcessed++;
+                            logDetails.processados++;
+                            continue;
+                        } else {
+                            proximoStatus = 'em_aguardo';
+                        }
                     }
 
                     await supabase.from('email_logs').update({ status_envio: 'sucesso' }).eq('id', logData.id);
@@ -231,7 +264,29 @@ export async function GET(request: Request) {
                     if (sitesToProcess.length > 1) await new Promise(r => setTimeout(r, 1500));
                 } catch (err: any) {
                     console.error(`❌ [Erro] ${site.url}:`, err);
-                    await supabase.from('sites').update({ status_contato: 'erro_envio', ultimo_contato: new Date().toISOString() }).eq('id', site.id);
+                    
+                    // Se deu erro no envio, tenta pular para o próximo e-mail imediatamente
+                    if (site.email_index === 0 && site.email_2) {
+                        await supabase.from('sites').update({
+                            email_index: 1,
+                            status_contato: 'lead',
+                            followup_index: 0,
+                            thread_id: null,
+                            proximo_followup: null,
+                            ultimo_contato: new Date().toISOString()
+                        }).eq('id', site.id);
+                    } else if (site.email_index === 1 && site.email_3) {
+                        await supabase.from('sites').update({
+                            email_index: 2,
+                            status_contato: 'lead',
+                            followup_index: 0,
+                            thread_id: null,
+                            proximo_followup: null,
+                            ultimo_contato: new Date().toISOString()
+                        }).eq('id', site.id);
+                    } else {
+                        await supabase.from('sites').update({ status_contato: 'erro_envio', ultimo_contato: new Date().toISOString() }).eq('id', site.id);
+                    }
                 }
             }
             logDetails.status = 'sucesso';
