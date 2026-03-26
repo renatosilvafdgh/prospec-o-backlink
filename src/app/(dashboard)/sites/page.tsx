@@ -74,12 +74,14 @@ export default function SitesPage() {
     const [sortField, setSortField] = useState<string>('created_at');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [statusFilter, setStatusFilter] = useState<string>('todos');
+    const [asMin, setAsMin] = useState<string>('');
+    const [asMax, setAsMax] = useState<string>('');
     const supabase = useMemo(() => createClient(), []);
 
     useEffect(() => {
         fetchSites(0);
         fetchCampanhas();
-    }, [sortField, sortOrder, statusFilter]);
+    }, [sortField, sortOrder, statusFilter, asMin, asMax]);
 
     async function fetchCampanhas() {
         const { data: { user } } = await supabase.auth.getUser();
@@ -119,6 +121,10 @@ export default function SitesPage() {
                 countQuery = countQuery.neq('status_contato', 'invalid');
             }
 
+            // Filtro de AS (Intervalo)
+            if (asMin) countQuery = countQuery.gte('domain_authority', parseInt(asMin));
+            if (asMax) countQuery = countQuery.lte('domain_authority', parseInt(asMax));
+
             const { count: total, error: countErr } = await countQuery;
             if (countErr) throw countErr;
 
@@ -139,6 +145,10 @@ export default function SitesPage() {
                 // Por padrão, esconde inválidos/bounces
                 dataQuery = dataQuery.neq('status_contato', 'invalid');
             }
+
+            // Filtro de AS (Intervalo)
+            if (asMin) dataQuery = dataQuery.gte('domain_authority', parseInt(asMin));
+            if (asMax) dataQuery = dataQuery.lte('domain_authority', parseInt(asMax));
 
             // Ordenação Determinística
             dataQuery = dataQuery.order(sortField, { ascending: sortOrder === 'asc' });
@@ -429,6 +439,28 @@ export default function SitesPage() {
                         <option value="recusado">Recusado</option>
                         <option value="invalid">E-mails Inválidos</option>
                     </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <div className="relative">
+                        <input
+                            type="number"
+                            placeholder="AS mín"
+                            className="w-20 pl-2 pr-2 py-2.5 rounded-xl bg-card border border-border text-sm outline-none focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 transition-all text-center"
+                            value={asMin}
+                            onChange={(e) => { setAsMin(e.target.value); setCurrentPage(0); }}
+                        />
+                    </div>
+                    <span className="text-muted-foreground">-</span>
+                    <div className="relative">
+                        <input
+                            type="number"
+                            placeholder="AS máx"
+                            className="w-20 pl-2 pr-2 py-2.5 rounded-xl bg-card border border-border text-sm outline-none focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 transition-all text-center"
+                            value={asMax}
+                            onChange={(e) => { setAsMax(e.target.value); setCurrentPage(0); }}
+                        />
+                    </div>
                 </div>
 
                 {selectedCount > 0 && (
